@@ -1,0 +1,48 @@
+# limit_req_zone 必须放在 nginx.conf 的 http {} 作用域。
+limit_req_zone $binary_remote_addr zone=wx_login:10m rate=5r/m;
+limit_req_zone $binary_remote_addr zone=wx_onu_search:10m rate=30r/m;
+limit_req_zone $binary_remote_addr zone=wx_boss:10m rate=5r/s;
+
+upstream wx_api_backend {
+    server 127.0.0.1:7001;
+    keepalive 16;
+}
+
+server {
+    listen 5772 ssl;
+    server_name anbo.njcatv.net;
+    limit_req_status 429;
+
+    ssl_certificate <FULLCHAIN_PATH>;
+    ssl_certificate_key <PRIVATE_KEY_PATH>;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:WXSSL:10m;
+
+    server_tokens off;
+    client_max_body_size 6m;
+
+    # 不在 Nginx 中添加 Access-Control-Allow-Origin。
+    # Flask 只对 CORS_ORIGINS 中的来源返回 CORS 响应头。
+    location = /wx/api/auth/login {
+        limit_req zone=wx_login burst=3 nodelay;
+        include snippets/wx-api-proxy.conf;
+    }
+
+    location = /wx/api/netops2026/onu/search {
+        limit_req zone=wx_onu_search burst=10 nodelay;
+        include snippets/wx-api-proxy.conf;
+    }
+
+    location ^~ /wx/api/netops2026/boss/ {
+        limit_req zone=wx_boss burst=5 nodelay;
+        include snippets/wx-api-proxy.conf;
+    }
+
+    location /wx/api/ {
+        include snippets/wx-api-proxy.conf;
+    }
+}
+
+# 将 `wx-api-proxy.conf.example` 复制为
+# `/etc/nginx/snippets/wx-api-proxy.conf` 后再执行 `nginx -t`。

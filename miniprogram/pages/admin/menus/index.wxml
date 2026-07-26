@@ -1,0 +1,51 @@
+<view class="page menus-page">
+  <view class="nav-header">
+    <button class="back-button" bindtap="goBack">‹</button>
+    <view class="nav-title">功能管理</view>
+    <button class="reset-button" bindtap="openCreate">新增</button>
+  </view>
+
+  <view class="hint-box">点击“停用”从应用栏隐藏功能，点击“新增”添加到应用栏。</view>
+
+  <view class="list-title">我的常用</view>
+  <view class="panel list-panel">
+    <view wx:for="{{commonMenus}}" wx:key="id" class="menu-row">
+      <button class="circle-button minus" data-id="{{item.id}}" data-enabled="{{item.enabled ? 1 : 0}}" bindtap="toggleMenu">{{item.enabled ? '−' : '+'}}</button>
+      <view class="mini-icon color-{{index % 6}}">
+        <t-icon name="{{item.icon}}" size="34rpx" color="#ffffff" />
+      </view>
+      <view class="menu-name">{{item.name}}</view>
+      <button class="text-button" data-id="{{item.id}}" bindtap="openEdit">编辑</button>
+    </view>
+  </view>
+
+  <view class="list-title">全部功能</view>
+  <view class="panel list-panel">
+    <view wx:for="{{otherMenus}}" wx:key="id" class="menu-row">
+      <button class="circle-button plus" data-id="{{item.id}}" data-enabled="{{item.enabled ? 1 : 0}}" bindtap="toggleMenu">{{item.enabled ? '−' : '+'}}</button>
+      <view class="mini-icon color-{{index % 6}}">
+        <t-icon name="{{item.icon}}" size="34rpx" color="#ffffff" />
+      </view>
+      <view class="menu-name">{{item.name}}</view>
+      <button class="text-button" data-id="{{item.id}}" bindtap="openEdit">编辑</button>
+    </view>
+  </view>
+
+  <view wx:if="{{showForm}}" class="form-mask">
+    <view class="form-panel">
+      <view class="form-header">
+        <view class="form-title">{{formMode === 'edit' ? '编辑功能' : '新增功能'}}</view>
+        <button class="close-button" bindtap="closeForm">×</button>
+      </view>
+      <view class="field-group"><view class="field-label">功能标识</view><input class="form-input" data-field="menu_key" value="{{form.menu_key}}" bindinput="onFormInput" /></view>
+      <view class="field-group"><view class="field-label">名称</view><input class="form-input" data-field="name" value="{{form.name}}" bindinput="onFormInput" /></view>
+      <view class="field-group"><view class="field-label">图标</view><input class="form-input" data-field="icon" value="{{form.icon}}" bindinput="onFormInput" /></view>
+      <view class="field-group"><view class="field-label">页面路径</view><input class="form-input" data-field="path" value="{{form.path}}" bindinput="onFormInput" /></view>
+      <view class="field-group"><view class="field-label">分组</view><picker range="{{groups}}" bindchange="onGroupChange"><view class="picker-value">{{form.group_name}}</view></picker></view>
+      <view class="field-group"><view class="field-label">最低角色</view><picker range="{{roleCodes}}" bindchange="onRoleChange"><view class="picker-value">{{form.min_role}}</view></picker></view>
+      <view class="field-group"><view class="field-label">用户类型</view><picker range="{{userTypes}}" bindchange="onUserTypeChange"><view class="picker-value">{{form.user_type}}</view></picker></view>
+      <view class="field-group"><view class="field-label">排序</view><input class="form-input" type="number" data-field="sort_order" value="{{form.sort_order}}" bindinput="onFormInput" /></view>
+      <button class="primary-button save-button" loading="{{saving}}" disabled="{{saving}}" bindtap="saveMenu">保存</button>
+    </view>
+  </view>
+</view>

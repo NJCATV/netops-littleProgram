@@ -1,0 +1,23 @@
+[Service]
+User=<COLLECTOR_USER>
+Group=<COLLECTOR_GROUP>
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=<COLLECTOR_DATA_DIR> <COLLECTOR_LOG_DIR>
+Restart=on-failure
+RestartSec=5s
+StartLimitIntervalSec=60
+StartLimitBurst=5
+LimitNOFILE=65536
+MemoryMax=<MEMORY_LIMIT>

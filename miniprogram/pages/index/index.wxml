@@ -1,0 +1,53 @@
+<view class="page login-page">
+  <view class="brand-title">智维助手</view>
+
+  <view class="panel login-panel">
+    <view class="field-group">
+      <view class="field-label">用户名/手机号</view>
+      <input
+        class="form-input"
+        placeholder="请输入用户名或手机号"
+        placeholder-class="input-placeholder"
+        value="{{account}}"
+        bindinput="onAccountInput"
+      />
+    </view>
+
+    <view class="field-group">
+      <view class="field-label">密码</view>
+      <view class="password-row">
+        <input
+          class="password-input"
+          placeholder="请输入密码"
+          placeholder-class="input-placeholder"
+          password="{{passwordHidden}}"
+          value="{{password}}"
+          bindinput="onPasswordInput"
+        />
+        <view class="password-toggle" bindtap="togglePassword">{{passwordVisible ? '隐藏' : '显示'}}</view>
+      </view>
+    </view>
+
+    <t-button
+      class="login-button"
+      block
+      theme="primary"
+      loading="{{submitting}}"
+      disabled="{{!canSubmit || submitting}}"
+      bindtap="onLoginTap"
+    >登录</t-button>
+
+    <view class="login-links">
+      <view bindtap="onRegisterTap">没有账号？立即注册</view>
+      <view bindtap="showComingSoon">忘记密码？</view>
+    </view>
+  </view>
+
+  <view class="panel no-login-entry" bindtap="goTools">
+    <view>
+      <view class="entry-title">免登录使用</view>
+      <view class="entry-desc">进入便捷工具，处理现场辅助任务</view>
+    </view>
+    <t-icon name="chevron-right" size="44rpx" color="#2f5f8f" />
+  </view>
+</view>

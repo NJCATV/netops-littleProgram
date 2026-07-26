@@ -1,0 +1,43 @@
+<view class="profile-page">
+  <view class="profile-card">
+    <view class="avatar">{{userInitial}}</view>
+    <view>
+      <view class="name">{{user.real_name || '智维用户'}}</view>
+      <view class="meta">{{user.org_name || '未分配组织'}}｜{{user.role_code || '-'}}</view>
+    </view>
+  </view>
+
+  <view class="panel info-panel">
+    <view class="info-row"><text>手机号</text><text>{{user.mobile || '-'}}</text></view>
+    <view class="info-row"><text>用户类型</text><text>{{user.user_type || '-'}}</text></view>
+    <view class="info-row"><text>OSS 账号</text><text>{{user.oss_account || '未绑定'}}</text></view>
+    <view class="info-row"><text>OSS 状态</text><text>{{user.oss_bind_status || '-'}}</text></view>
+    <view class="info-row" wx:if="{{user.manage_org_name}}"><text>管理范围</text><text>{{user.manage_org_name}}</text></view>
+  </view>
+
+  <view class="panel action-panel">
+    <view class="action-row" bindtap="goChangePassword">
+      <text>修改密码</text>
+      <t-icon name="chevron-right" size="36rpx" color="#8a96a6" />
+    </view>
+    <view class="action-row" bindtap="goBindOss">
+      <text>OSS 账号确认或更新</text>
+      <t-icon name="chevron-right" size="36rpx" color="#8a96a6" />
+    </view>
+    <view class="action-row danger" bindtap="onLogout">
+      <text>退出登录</text>
+      <t-icon name="logout" size="36rpx" color="#d92d20" />
+    </view>
+  </view>
+
+  <view class="bottom-nav">
+    <view class="nav-item" bindtap="goWorkbench">
+      <t-icon name="app" size="44rpx" color="#7d8ca0" />
+      <view>工作台</view>
+    </view>
+    <view class="nav-item active">
+      <t-icon name="user" size="44rpx" color="#2f7df6" />
+      <view>我的</view>
+    </view>
+  </view>
+</view>

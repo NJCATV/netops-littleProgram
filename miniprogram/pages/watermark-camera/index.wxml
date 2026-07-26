@@ -1,0 +1,203 @@
+<view class="camera-page">
+  <view class="camera-stage">
+    <camera
+      wx:if="{{showCamera}}"
+      class="camera-frame"
+      device-position="{{devicePosition}}"
+      flash="{{flashMode}}"
+      mode="normal"
+      bindinitdone="onCameraReady"
+      binderror="onCameraError"
+    ></camera>
+
+    <image
+      wx:else
+      class="camera-frame"
+      src="{{photoPath}}"
+      mode="aspectFill"
+    />
+
+    <view class="camera-tools">
+      <view class="camera-tool {{autoSaveClass}}" bindtap="toggleAutoSave">
+        <view class="tool-symbol">存</view>
+        <view class="tool-label">{{autoSaveText}}</view>
+      </view>
+      <view class="camera-tool" bindtap="switchDevice">
+        <view class="tool-symbol">⇄</view>
+        <view class="tool-label">切换</view>
+      </view>
+      <view
+        class="camera-tool"
+        bindtap="toggleFlash"
+      >
+        <view class="tool-symbol">⚡</view>
+        <view class="tool-label">{{flashLabel}}</view>
+      </view>
+    </view>
+
+    <view class="watermark-preview {{watermarkClass}}">
+      <view wx:for="{{watermarkPreviewLines}}" wx:key="key" class="preview-line">{{item.text}}</view>
+    </view>
+
+    <view wx:if="{{cameraError}}" class="camera-error">{{cameraError}}</view>
+  </view>
+
+  <view class="bottom-panel">
+    <view class="status-line">{{statusText}}</view>
+
+    <view class="main-actions">
+      <button class="action-button secondary-action" bindtap="handlePhotoTap">{{photoButtonText}}</button>
+      <button class="action-button primary-action" loading="{{isSaving}}" bindtap="handleSaveTap">保存</button>
+    </view>
+
+    <view class="settings-strip">
+      <view class="setting-item" bindtap="restoreDefault">默认</view>
+      <view wx:if="{{isAdminMode}}" class="setting-item" bindtap="openMoreSheet">更多</view>
+    </view>
+  </view>
+
+  <view wx:if="{{showDateTimeSheet}}" class="sheet-mask" bindtap="cancelDateTimeSheet">
+    <view class="bottom-sheet date-sheet" catchtap="stopSheetTap">
+      <view class="sheet-header">
+        <view class="sheet-title">时间/日期</view>
+        <view class="sheet-close" bindtap="cancelDateTimeSheet">取消</view>
+      </view>
+
+      <view class="datetime-sheet-grid">
+        <picker mode="date" value="{{watermarkFields.date.value}}" bindchange="onDateChange">
+          <view class="datetime-cell">
+            <text class="datetime-label">日期</text>
+            <text class="datetime-value">{{watermarkFields.date.value}}</text>
+          </view>
+        </picker>
+        <picker mode="time" value="{{watermarkFields.time.value}}" bindchange="onTimeChange">
+          <view class="datetime-cell">
+            <text class="datetime-label">时间</text>
+            <text class="datetime-value">{{watermarkFields.time.value}}</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="sheet-actions">
+        <button class="secondary-button sheet-button" bindtap="restoreCurrentDateTime">恢复当前时间</button>
+        <button class="primary-button sheet-button" bindtap="closeDateTimeSheet">确定</button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showMoreSheet && isAdminMode}}" class="sheet-mask" bindtap="closeMoreSheet">
+    <view class="bottom-sheet more-sheet" catchtap="stopSheetTap">
+      <view class="sheet-header">
+        <view class="sheet-title">更多设置</view>
+        <view class="sheet-close" bindtap="closeMoreSheet">关闭</view>
+      </view>
+
+      <scroll-view class="more-scroll" scroll-y>
+        <view class="setting-block">
+          <view class="setting-title">水印样式</view>
+          <view class="style-grid">
+            <view
+              wx:for="{{styleOptions}}"
+              wx:key="key"
+              class="style-item {{item.activeClass}}"
+              data-style="{{item.key}}"
+              bindtap="selectWatermarkStyle"
+            >{{item.label}}</view>
+          </view>
+        </view>
+
+        <view class="setting-block">
+          <view class="setting-title">水印字段</view>
+          <view class="field-list">
+            <view wx:for="{{fieldOptions}}" wx:key="key" class="watermark-field">
+              <view class="field-head">
+                <view class="field-name">{{item.label}}</view>
+                <switch
+                  class="field-switch"
+                  checked="{{item.enabled}}"
+                  data-key="{{item.key}}"
+                  bindchange="toggleField"
+                  color="#2f5f8f"
+                />
+              </view>
+
+              <picker
+                wx:if="{{item.isDate}}"
+                mode="date"
+                value="{{item.pickerValue}}"
+                bindchange="onDateChange"
+              >
+                <view class="field-static field-action">{{item.value}}</view>
+              </picker>
+
+              <picker
+                wx:elif="{{item.isTime}}"
+                mode="time"
+                value="{{item.pickerValue}}"
+                bindchange="onTimeChange"
+              >
+                <view class="field-static field-action">{{item.value}}</view>
+              </picker>
+
+              <view
+                wx:elif="{{item.isLocation}}"
+                class="field-static field-action"
+                bindtap="choosePosition"
+              >{{item.value}}</view>
+
+              <picker
+                wx:elif="{{item.isSiteType}}"
+                mode="selector"
+                range="{{siteTypeOptions}}"
+                value="{{siteTypeIndex}}"
+                bindchange="onSiteTypeChange"
+              >
+                <view class="field-static picker-select">{{item.value}}</view>
+              </picker>
+
+              <input
+                wx:elif="{{item.editable}}"
+                class="field-input"
+                value="{{item.value}}"
+                data-key="{{item.key}}"
+                bindinput="onFieldInput"
+                placeholder="{{item.placeholder}}"
+                placeholder-class="input-placeholder"
+              />
+
+              <view wx:else class="field-static">{{item.value}}</view>
+            </view>
+          </view>
+        </view>
+
+        <view class="admin-exit" bindtap="exitAdminMode">退出高级模式</view>
+      </scroll-view>
+    </view>
+  </view>
+
+  <view wx:if="{{showPinDialog}}" class="sheet-mask" bindtap="closePinDialog">
+    <view class="pin-dialog" catchtap="stopSheetTap">
+      <view class="pin-title">高级设置</view>
+      <input
+        class="pin-input"
+        type="number"
+        password
+        maxlength="4"
+        focus
+        value="{{pinValue}}"
+        bindinput="onPinInput"
+      />
+      <view class="pin-actions">
+        <button class="secondary-button pin-button" bindtap="closePinDialog">取消</button>
+        <button class="primary-button pin-button" bindtap="confirmPin">确定</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="canvas-holder">
+    <canvas
+      canvas-id="watermarkCanvas"
+      style="{{canvasStyle}}"
+    ></canvas>
+  </view>
+</view>

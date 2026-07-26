@@ -1,0 +1,43 @@
+<view class="page auth-page">
+  <view class="page-header">
+    <view class="page-title">OSS 账号确认</view>
+    <view class="page-subtitle">确认当前人员的 OSS 登录名并完成密码校验</view>
+  </view>
+
+  <view class="panel auth-panel">
+    <view class="field-group">
+      <view class="field-label">OSS 登录名</view>
+      <input
+        class="form-input"
+        placeholder="请输入 OSS 登录名"
+        placeholder-class="input-placeholder"
+        value="{{ossAccount}}"
+        bindinput="onOssAccountInput"
+      />
+    </view>
+
+    <view class="field-group">
+      <view class="field-label">OSS 密码</view>
+      <view class="password-row">
+        <input
+          class="password-input"
+          placeholder="请输入 OSS 密码"
+          placeholder-class="input-placeholder"
+          password="{{passwordHidden}}"
+          value="{{ossPassword}}"
+          bindinput="onOssPasswordInput"
+        />
+        <view class="password-toggle" bindtap="togglePassword">{{passwordVisible ? '隐藏' : '显示'}}</view>
+      </view>
+    </view>
+
+    <t-button
+      class="submit-button"
+      block
+      theme="primary"
+      loading="{{submitting}}"
+      disabled="{{!canSubmit || submitting}}"
+      bindtap="onSubmit"
+    >确认绑定</t-button>
+  </view>
+</view>

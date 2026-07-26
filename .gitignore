@@ -1,0 +1,28 @@
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+instance/
+
+# Logs and runtime
+*.log
+logs/
+tmp/
+temp/
+backend/uploads/
+oss_users_import.*
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

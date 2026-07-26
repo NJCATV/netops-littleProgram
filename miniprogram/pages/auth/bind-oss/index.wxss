@@ -1,0 +1,78 @@
+.auth-page {
+  padding-top: 48rpx;
+}
+
+.page-header {
+  padding: 8rpx 0 24rpx;
+}
+
+.page-title {
+  color: #202832;
+  font-size: 40rpx;
+  font-weight: 600;
+}
+
+.page-subtitle {
+  margin-top: 8rpx;
+  color: #6f7d8c;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.auth-panel {
+  padding: 34rpx 32rpx 30rpx;
+}
+
+.field-group + .field-group {
+  margin-top: 28rpx;
+}
+
+.field-label {
+  margin-bottom: 14rpx;
+  color: #202832;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.form-input,
+.password-row {
+  min-height: 88rpx;
+  border: 1rpx solid #d9e0e7;
+  border-radius: 4rpx;
+  background: #f9fafb;
+}
+
+.form-input {
+  padding: 0 24rpx;
+  color: #202832;
+  font-size: 28rpx;
+}
+
+.input-placeholder {
+  color: #a4aeb8;
+}
+
+.password-row {
+  display: flex;
+  align-items: center;
+  padding: 0 18rpx 0 24rpx;
+}
+
+.password-input {
+  flex: 1;
+  min-width: 0;
+  color: #202832;
+  font-size: 28rpx;
+}
+
+.password-toggle {
+  flex: 0 0 auto;
+  padding-left: 20rpx;
+  color: #2f5f8f;
+  font-size: 24rpx;
+}
+
+.submit-button {
+  width: 100%;
+  margin-top: 32rpx;
+}

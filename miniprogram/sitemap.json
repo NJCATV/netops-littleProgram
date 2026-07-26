@@ -1,0 +1,9 @@
+{
+  "desc": "Sitemap for 江苏有线南京分公司智维助手",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}

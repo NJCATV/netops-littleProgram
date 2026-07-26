@@ -1,0 +1,26 @@
+<view class="page tools-page">
+  <view class="page-header">
+    <view class="page-title">便捷工具</view>
+    <view class="page-subtitle">现场支撑工具统一入口</view>
+  </view>
+
+  <view class="tool-list">
+    <view class="panel tool-card" bindtap="goWatermarkCamera">
+      <view class="tool-icon">相</view>
+      <view class="tool-main">
+        <view class="tool-title">水印相机</view>
+        <view class="tool-desc">现场照片水印采集，支持拍照、字段编辑、定位和保存</view>
+      </view>
+      <t-icon name="chevron-right" size="44rpx" color="#2f5f8f" />
+    </view>
+
+    <view class="panel tool-card" bindtap="goIpCalculator">
+      <view class="tool-icon">IP</view>
+      <view class="tool-main">
+        <view class="tool-title">网络/IP 地址计算器</view>
+        <view class="tool-desc">计算网络地址、广播地址、可用地址范围、子网掩码、地址数量等</view>
+      </view>
+      <t-icon name="chevron-right" size="44rpx" color="#2f5f8f" />
+    </view>
+  </view>
+</view>

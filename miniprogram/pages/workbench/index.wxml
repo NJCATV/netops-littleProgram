@@ -1,0 +1,62 @@
+<view class="workbench-page">
+  <view class="hero">
+    <view class="hero-main">
+      <view class="avatar">{{userInitial}}</view>
+      <view>
+        <view class="hero-name">{{user.real_name || '智维用户'}}<text class="hero-org">｜{{user.org_name || '未分配组织'}}</text></view>
+        <view class="hero-subtitle">江苏有线南京分公司智维助手</view>
+      </view>
+    </view>
+    <t-icon name="notification" size="42rpx" color="#ffffff" />
+  </view>
+
+  <view class="notice-row">
+    <t-icon name="sound" size="34rpx" color="#2f7df6" />
+    <view class="notice-text">公告：ONU查询功能内测中</view>
+    <t-icon name="chevron-right" size="34rpx" color="#7d8ca0" />
+  </view>
+
+  <view class="panel app-section">
+    <view class="section-header">
+      <view class="section-title">我的常用</view>
+      <view class="section-action" bindtap="goManageApps">
+        <t-icon name="edit-1" size="28rpx" color="#2f7df6" />
+        <text>编辑</text>
+      </view>
+    </view>
+    <view class="app-grid">
+      <view wx:for="{{commonApps}}" wx:key="menu_key" class="app-item" data-index="{{index}}" data-source="common" bindtap="openApp">
+        <view class="app-icon color-{{index % 6}}">
+          <t-icon name="{{item.iconName}}" size="48rpx" color="#ffffff" />
+        </view>
+        <view class="app-name">{{item.name}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="panel app-section">
+    <view class="section-header">
+      <view class="section-title">全部功能</view>
+    </view>
+    <view wx:if="{{loading}}" class="status-text">加载中...</view>
+    <view class="app-grid all-grid">
+      <view wx:for="{{allApps}}" wx:key="menu_key" class="app-item" data-index="{{index}}" data-source="all" bindtap="openApp">
+        <view class="app-icon color-{{index % 6}}">
+          <t-icon name="{{item.iconName}}" size="48rpx" color="#ffffff" />
+        </view>
+        <view class="app-name">{{item.name}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-nav">
+    <view class="nav-item active">
+      <t-icon name="app" size="44rpx" color="#2f7df6" />
+      <view>工作台</view>
+    </view>
+    <view class="nav-item" bindtap="goProfile">
+      <t-icon name="user" size="44rpx" color="#7d8ca0" />
+      <view>我的</view>
+    </view>
+  </view>
+</view>

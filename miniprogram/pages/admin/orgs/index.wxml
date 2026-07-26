@@ -1,0 +1,44 @@
+<view class="page orgs-page">
+  <view class="top-card">
+    <view>
+      <view class="page-title">组织管理</view>
+      <view class="page-subtitle">固定三层组织维护</view>
+    </view>
+    <button class="icon-button" bindtap="openCreate">＋</button>
+  </view>
+
+  <view wx:if="{{loading}}" class="status-text">加载中...</view>
+  <view class="panel org-list">
+    <view wx:for="{{orgs}}" wx:key="id" class="org-row level-{{item.level}}">
+      <view class="org-main">
+        <view class="org-name">{{item.name}}</view>
+        <view class="org-meta">层级 {{item.level}}｜{{item.status}}</view>
+      </view>
+      <button class="text-button" data-parent-id="{{item.id}}" wx:if="{{item.level < 3}}" bindtap="openCreate">下级</button>
+      <button class="text-button" data-id="{{item.id}}" bindtap="openEdit">编辑</button>
+      <button class="text-button danger" data-id="{{item.id}}" bindtap="disable">禁用</button>
+    </view>
+  </view>
+
+  <view wx:if="{{showForm}}" class="form-mask">
+    <view class="form-panel">
+      <view class="form-header">
+        <view class="form-title">{{formMode === 'edit' ? '编辑组织' : '新增组织'}}</view>
+        <button class="close-button" bindtap="closeForm">×</button>
+      </view>
+      <view class="field-group">
+        <view class="field-label">上级组织</view>
+        <view class="picker-value">{{selectedParentName}}</view>
+      </view>
+      <view class="field-group">
+        <view class="field-label">组织名称</view>
+        <input class="form-input" data-field="name" value="{{form.name}}" bindinput="onFormInput" />
+      </view>
+      <view class="field-group">
+        <view class="field-label">排序</view>
+        <input class="form-input" type="number" data-field="sort_order" value="{{form.sort_order}}" bindinput="onFormInput" />
+      </view>
+      <button class="primary-button save-button" loading="{{saving}}" disabled="{{saving}}" bindtap="saveOrg">保存</button>
+    </view>
+  </view>
+</view>

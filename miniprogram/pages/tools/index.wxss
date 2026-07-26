@@ -1,0 +1,68 @@
+.page-header {
+  padding: 8rpx 0 24rpx;
+}
+
+.page-title {
+  color: #202832;
+  font-size: 40rpx;
+  font-weight: 600;
+}
+
+.page-subtitle {
+  margin-top: 8rpx;
+  color: #6f7d8c;
+  font-size: 24rpx;
+}
+
+.tool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.tool-card {
+  display: flex;
+  align-items: center;
+  min-height: 152rpx;
+  padding: 28rpx 24rpx;
+}
+
+.tool-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72rpx;
+  height: 72rpx;
+  flex: 0 0 72rpx;
+  border-radius: 4rpx;
+  background: #e8eef4;
+  color: #2f5f8f;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.tool-main {
+  flex: 1;
+  min-width: 0;
+  margin-left: 24rpx;
+}
+
+.tool-title {
+  color: #202832;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.tool-desc {
+  margin-top: 8rpx;
+  color: #6f7d8c;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.tool-arrow {
+  margin-left: 18rpx;
+  color: #2f5f8f;
+  font-size: 48rpx;
+  line-height: 1;
+}

@@ -1,0 +1,10 @@
+{
+  "name": "little-program",
+  "version": "0.1.0",
+  "private": true,
+  "description": "江苏有线南京分公司智维助手微信小程序",
+  "scripts": {},
+  "dependencies": {
+    "tdesign-miniprogram": "^1.14.0"
+  }
+}

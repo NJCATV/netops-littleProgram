@@ -1,0 +1,110 @@
+<view class="page users-page">
+  <view class="top-card">
+    <view>
+      <view class="page-title">用户管理</view>
+      <view class="page-subtitle">账号、角色、组织和状态维护</view>
+    </view>
+    <button class="icon-button" bindtap="openCreate">＋</button>
+  </view>
+
+  <view class="search-row">
+    <input
+      class="search-input"
+      placeholder="姓名 / 手机号 / OSS 账号"
+      placeholder-class="input-placeholder"
+      value="{{keyword}}"
+      bindinput="onKeywordInput"
+      confirm-type="search"
+      bindconfirm="onSearch"
+    />
+    <button class="search-button" bindtap="onSearch">搜索</button>
+  </view>
+
+  <view class="filter-grid">
+    <picker range="{{filterOrgOptions}}" range-key="label" bindchange="onFilterOrgChange">
+      <view class="filter-pill">{{selectedFilterOrgName}}</view>
+    </picker>
+    <picker range="{{filterRoleOptions}}" range-key="label" data-field="role_code" data-source="filterRoleOptions" bindchange="onFilterChange">
+      <view class="filter-pill">{{filters.role_code || '全部角色'}}</view>
+    </picker>
+    <picker range="{{filterUserTypeOptions}}" range-key="label" data-field="user_type" data-source="filterUserTypeOptions" bindchange="onFilterChange">
+      <view class="filter-pill">{{filters.user_type || '全部类型'}}</view>
+    </picker>
+    <picker range="{{filterStatusOptions}}" range-key="label" data-field="status" data-source="filterStatusOptions" bindchange="onFilterChange">
+      <view class="filter-pill">{{filters.status || '全部状态'}}</view>
+    </picker>
+    <picker range="{{filterOssOptions}}" range-key="label" data-field="oss_bind_status" data-source="filterOssOptions" bindchange="onFilterChange">
+      <view class="filter-pill">{{filters.oss_bind_status || '全部OSS'}}</view>
+    </picker>
+  </view>
+
+  <view wx:if="{{loading}}" class="status-text">加载中...</view>
+
+  <view class="user-list">
+    <view wx:for="{{users}}" wx:key="id" class="panel user-card">
+      <view class="user-main">
+        <view class="user-name">{{item.real_name}}</view>
+        <view class="user-meta">{{item.mobile}}｜{{item.org_name || '未分配组织'}}</view>
+        <view class="tag-row">
+          <text class="tag">{{item.role_code}}</text>
+          <text class="tag">{{item.status}}</text>
+          <text class="tag">{{item.oss_bind_status}}</text>
+        </view>
+      </view>
+      <view class="action-row">
+        <button class="text-button" data-id="{{item.id}}" bindtap="openEdit">编辑</button>
+        <button class="text-button" data-id="{{item.id}}" data-status="{{item.status}}" bindtap="toggleStatus">{{item.status === 'active' ? '禁用' : '启用'}}</button>
+        <button class="text-button" data-id="{{item.id}}" bindtap="resetUserPassword">重置</button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showForm}}" class="form-mask">
+    <view class="form-panel">
+      <view class="form-header">
+        <view class="form-title">{{formMode === 'edit' ? '编辑用户' : '新增用户'}}</view>
+        <button class="close-button" bindtap="closeForm">×</button>
+      </view>
+
+      <view class="field-group">
+        <view class="field-label">姓名</view>
+        <input class="form-input" data-field="real_name" value="{{form.real_name}}" bindinput="onFormInput" />
+      </view>
+      <view class="field-group">
+        <view class="field-label">手机号</view>
+        <input class="form-input" data-field="mobile" value="{{form.mobile}}" bindinput="onFormInput" />
+      </view>
+      <view class="field-group">
+        <view class="field-label">OSS 账号</view>
+        <input class="form-input" data-field="oss_account" value="{{form.oss_account}}" bindinput="onFormInput" />
+      </view>
+
+      <view class="field-group">
+        <view class="field-label">所属组织</view>
+        <picker range="{{orgs}}" range-key="display_name" bindchange="onOrgChange">
+          <view class="picker-value">{{selectedOrgName}}</view>
+        </picker>
+      </view>
+      <view class="field-group">
+        <view class="field-label">角色</view>
+        <picker range="{{roleCodes}}" bindchange="onRoleChange">
+          <view class="picker-value">{{form.role_code}}</view>
+        </picker>
+      </view>
+      <view class="field-group">
+        <view class="field-label">用户类型</view>
+        <picker range="{{userTypes}}" bindchange="onUserTypeChange">
+          <view class="picker-value">{{form.user_type}}</view>
+        </picker>
+      </view>
+      <view class="field-group" wx:if="{{form.role_code === 'org_admin'}}">
+        <view class="field-label">管理组织</view>
+        <picker range="{{orgs}}" range-key="display_name" bindchange="onManageOrgChange">
+          <view class="picker-value">{{selectedManageOrgName}}</view>
+        </picker>
+      </view>
+
+      <button class="primary-button save-button" loading="{{saving}}" disabled="{{saving}}" bindtap="saveUser">保存</button>
+    </view>
+  </view>
+</view>

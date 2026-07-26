@@ -1,0 +1,30 @@
+{
+  "name": "智维助手",
+  "appid": "__UNI__ZHIWEI_ASSISTANT",
+  "description": "江苏有线南京分公司智维助手",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "wx81e0f10fe806e9bc",
+    "setting": {
+      "urlCheck": true,
+      "es6": true,
+      "postcss": true,
+      "minified": true
+    },
+    "usingComponents": true,
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于在水印照片中记录现场位置"
+      }
+    },
+    "requiredPrivateInfos": [
+      "getLocation",
+      "chooseLocation"
+    ]
+  },
+  "h5": {
+    "title": "智维助手"
+  }
+}

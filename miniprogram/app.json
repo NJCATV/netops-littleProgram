@@ -1,0 +1,43 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/workbench/index",
+    "pages/profile/index",
+    "pages/auth/bind-oss/index",
+    "pages/auth/change-password/index",
+    "pages/admin/menus/index",
+    "pages/admin/orgs/index",
+    "pages/admin/users/index",
+    "pages/tools/index",
+    "pages/watermark-camera/index",
+    "pages/ip-calculator/ip-calculator"
+  ],
+  "window": {
+    "navigationBarTitleText": "智维助手",
+    "navigationBarBackgroundColor": "#2f3b4a",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f4f6f8"
+  },
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-icon": "tdesign-miniprogram/icon/icon"
+  },
+  "permission": {
+    "scope.camera": {
+      "desc": "用于现场拍照并生成水印照片"
+    },
+    "scope.userLocation": {
+      "desc": "用于在水印照片中记录现场位置"
+    },
+    "scope.writePhotosAlbum": {
+      "desc": "用于保存生成后的水印照片"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseLocation"
+  ],
+  "lazyCodeLoading": "requiredComponents",
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,53 @@
+<view class="page auth-page">
+  <view class="page-header">
+    <view class="page-title">首次修改密码</view>
+    <view class="page-subtitle">初始密码仅用于首次登录，请设置新的登录密码</view>
+  </view>
+
+  <view class="panel auth-panel">
+    <view class="field-group">
+      <view class="field-label">当前密码</view>
+      <input
+        class="form-input"
+        placeholder="请输入当前密码"
+        placeholder-class="input-placeholder"
+        password
+        value="{{oldPassword}}"
+        bindinput="onOldPasswordInput"
+      />
+    </view>
+
+    <view class="field-group">
+      <view class="field-label">新密码</view>
+      <input
+        class="form-input"
+        placeholder="至少 8 位"
+        placeholder-class="input-placeholder"
+        password
+        value="{{newPassword}}"
+        bindinput="onNewPasswordInput"
+      />
+    </view>
+
+    <view class="field-group">
+      <view class="field-label">确认新密码</view>
+      <input
+        class="form-input"
+        placeholder="请再次输入新密码"
+        placeholder-class="input-placeholder"
+        password
+        value="{{confirmPassword}}"
+        bindinput="onConfirmPasswordInput"
+      />
+    </view>
+
+    <t-button
+      class="submit-button"
+      block
+      theme="primary"
+      loading="{{submitting}}"
+      disabled="{{!canSubmit || submitting}}"
+      bindtap="onSubmit"
+    >确认修改</t-button>
+  </view>
+</view>

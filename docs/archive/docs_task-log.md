@@ -1,0 +1,251 @@
+# 本文件已归档
+
+本文件已归档，当前项目以根目录 AGENTS.md 和《统一工单池_含OSS融合_技术与实施总规划.md》为准。
+
+# Task Log
+
+## Task 1 - 项目梳理、文档、后端基础、数据库模型
+- 完成时间：2026-05-24 13:09:49 +08:00
+- 完成内容：
+  - 识别项目实际目录：前端 `miniprogram/`，后端 `backend/`。
+  - 确认前端当前为微信小程序原生工程，未发现标准 uni-app 的 `pages.json`、`manifest.json`、Vue `src/`。
+  - 按用户确认更新服务器 SSH 端口为 `5333`；SSH 密码仅写入本地私有 `.env`，不提交。
+  - 创建 Flask 后端基础工程，配置 SQLAlchemy、Flask-Migrate、MySQL 连接环境变量。
+  - 创建 `users`、`org_units`、`app_menus`、`login_logs`、`operation_logs` 模型。
+  - 创建密码哈希工具、OSS 密码加密工具和初始化数据脚本。
+  - 创建/更新 `AGENTS.md`、`CHANGELOG.md`、`docs/deploy.md`、`docs/api.md`。
+  - 统一项目部署目录和数据库名为 `anbo_wx`。
+  - 在服务器生成初始迁移文件，回传本地并提交 GitHub，保证服务器代码与 GitHub 一致。
+- 修改文件：
+  - `.gitignore`
+  - `AGENTS.md`
+  - `CHANGELOG.md`
+  - `docs/task-log.md`
+  - `docs/deploy.md`
+  - `docs/api.md`
+  - `backend/AGENT.md`
+  - `backend/.env.example`
+  - `backend/requirements.txt`
+  - `backend/run.py`
+  - `backend/wsgi.py`
+  - `backend/app/*`
+  - `backend/scripts/init_data.py`
+  - `backend/migrations/*`
+- 数据库变更：
+  - 新增核心表：`users`、`org_units`、`app_menus`、`login_logs`、`operation_logs`。
+  - 服务器数据库：`anbo_wx`。
+  - Flask-Migrate 迁移版本：`2ec7d071134d_task1_initial_models.py`。
+- 接口变更：
+  - 新增健康检查：`GET /api/health`。
+- 前端页面变更：无。
+- 本地测试结果：按用户要求不在本地创建虚拟环境、不安装依赖；已删除临时 `.venv`，后端依赖型测试改到服务器执行。
+- 服务器测试结果：
+  - `python -m compileall app scripts run.py wsgi.py`：通过。
+  - `flask db upgrade`：成功执行初始迁移。
+  - `python scripts/init_data.py`：成功，输出 `Initial data seeded.`。
+  - `curl http://127.0.0.1:7001/api/health`：返回 `{"code":0,"data":{"status":"healthy"},"message":"ok"}`。
+  - 初始化数据核验：`orgs=11`、`menus=8`、`users=1`。
+- 部署状态：
+  - 服务器目录：`/home/yvesyuan/PycharmProjects/anbo_wx`。
+  - 当前服务器 Git commit：`5e2ee98`。
+  - 后端临时启动方式：`python run.py`，监听 `0.0.0.0:7001`。
+  - 日志：`/tmp/anbo_wx_task1.log`。
+- Git commit hash：
+  - `f0b5b4c`：Task 1 后端模型和项目文档。
+  - `019501e`：部署项目名改为 `anbo_wx`。
+  - `5e2ee98`：初始数据库迁移文件。
+
+## User Import - 南京 OSS 账号表
+- 执行时间：2026-05-24
+- 来源文件：`南京OSS账号1.xlsx`。
+- 数据识别：
+  - Sheet1 共 1150 条用户数据。
+  - 字段：`地市`、`分公司`、`部门`、`登录名`、`姓名`、`手机号`。
+  - 手机号为空：124 条。
+  - 手机号重复：23 组。
+- 导入策略：
+  - `登录名` 导入为 `users.oss_account`。
+  - `姓名` 导入为 `users.real_name`。
+  - 组织完全按 Excel 三列导入：`地市` 为一级组织，`分公司` 为二级组织，`部门` 为三级组织。
+  - 手机号缺失、格式不是 11 位手机号、或手机号重复的记录不导入；不再生成占位手机号。
+  - 导入用户默认 `user_type=internal`、`role_code=normal_user`、`password_status=initial`、`oss_bind_status=pending`。
+  - 密码使用 `pbkdf2:sha256:120000` 哈希保存，避免默认高成本哈希导致批量导入超时。
+  - 重导时清空用户和组织数据，重置自增 ID，重建组织树。
+- 修改文件：
+  - `.gitignore`
+  - `backend/scripts/import_oss_users_csv.py`
+  - `docs/task-log.md`
+- 服务器执行结果：
+  - 导入命令：`python scripts/import_oss_users_csv.py /tmp/anbo_wx_oss_users.csv --reset`。
+  - 导入结果：`rows=1150`、`valid_rows=966`、`invalid_rows=184`、`invalid_mobile=154`、`duplicate_mobile=30`、`missing_required=0`、`created_users=966`。
+  - 数据库核验：`users_total=967`、`oss_users=966`、`placeholder_mobile=0`、`bad_mobile=0`、`Excel导入组织=0`。
+  - 组织核验：一级组织 `南京`，路径 `/1/`；二级组织 `8` 个；三级组织 `197` 个。
+  - 导入日志：`/tmp/anbo_wx_oss_reimport.log`。
+- Git commit hash：
+  - `b256429`：新增 OSS 用户导入脚本。
+  - `87e683b`：优化导入密码哈希成本。
+  - `28682ba`：优化导入缓存流程。
+  - `1c7cf98`：记录导入结果并同步服务器最终脚本。
+  - 最终重导脚本和结果记录见本次最新 Git 提交。
+
+## User Import Update - 调整二级组织
+- 执行时间：2026-05-24
+- 来源文件：桌面新版 `南京OSS账号1.xlsx`。
+- 调整内容：
+  - 按新版 Excel 重新读取 `地市 / 分公司 / 部门`。
+  - 保留非 OSS 用户，包括已手动维护的 super_admin。
+  - 删除并重导 OSS 用户。
+  - 清空并重建组织表，仍保持 `地市=1级`、`分公司=2级`、`部门=3级`。
+  - 手机号缺失、格式错误、重复的记录仍不导入，不生成占位手机号。
+- 服务器执行结果：
+  - 导入命令：`python scripts/import_oss_users_csv.py /tmp/anbo_wx_oss_users.csv --reset`。
+  - 导入结果：`rows=1150`、`valid_rows=966`、`invalid_rows=184`、`invalid_mobile=154`、`duplicate_mobile=30`、`created_users=966`。
+  - 组织结果：一级组织 `1` 个，二级组织 `11` 个，三级组织 `197` 个。
+  - 用户结果：`users_total=967`、`oss_users=966`、`placeholder_mobile=0`。
+  - super_admin 保留：`13151099955`，所属组织 `南京`。
+  - 导入日志：`/tmp/anbo_wx_org_update.log`。
+
+## Task 2 - 登录认证、JWT、OSS 绑定、首次改密
+- 完成时间：2026-05-24
+- 完成内容：
+  - 新增统一响应工具 `responses.py`。
+  - 新增 JWT 签发和校验工具，默认有效期 7 天，可通过 `JWT_ACCESS_TOKEN_EXPIRES` 配置。
+  - 新增认证装饰器 `login_required`，支持 Bearer token 认证。
+  - 新增权限基础服务，按用户状态输出 `next_action`。
+  - 新增认证服务，支持手机号或 OSS 账号登录。
+  - 新增 OSS 校验服务，按既有 OSS `/login` 约定提交 `userName`、MD5 `passWord`、`comeFrom=2`。
+  - 新增认证路由：`POST /api/auth/login`、`GET /api/auth/me`、`POST /api/auth/bind-oss`、`POST /api/auth/change-password`、`POST /api/auth/logout`。
+  - 登录成功/失败写入 `login_logs`。
+  - OSS 绑定成功/失败、修改密码写入 `operation_logs`。
+- 修改文件：
+  - `backend/.env.example`
+  - `backend/app/__init__.py`
+  - `backend/app/config.py`
+  - `backend/app/routes/auth.py`
+  - `backend/app/services/*`
+  - `backend/app/utils/decorators.py`
+  - `backend/app/utils/jwt.py`
+  - `backend/app/utils/responses.py`
+  - `docs/api.md`
+  - `docs/task-log.md`
+  - `CHANGELOG.md`
+- 数据库变更：无新增迁移，复用 Task 1 已创建的 `users`、`login_logs`、`operation_logs`。
+- 接口变更：
+  - 新增 `POST /api/auth/login`。
+  - 新增 `GET /api/auth/me`。
+  - 新增 `POST /api/auth/bind-oss`。
+  - 新增 `POST /api/auth/change-password`。
+  - 新增 `POST /api/auth/logout`。
+- 前端页面变更：
+  - 登录页接入 `POST /api/auth/login`。
+  - 新增 `utils/request.js`，统一封装后端 API 请求和 Bearer token。
+  - 新增 `utils/auth.js`，封装登录、OSS 绑定、改密、退出和 `next_action` 跳转。
+  - 新增 OSS 账号确认页：`pages/auth/bind-oss/index`。
+  - 新增首次修改密码页：`pages/auth/change-password/index`。
+  - 登录后按 `next_action` 跳转到 OSS 绑定、首次改密或工具入口。
+- 本地测试结果：
+  - 按项目约束未在本地创建虚拟环境、未安装依赖。
+  - `python -m compileall app scripts run.py wsgi.py`：通过。
+  - 前端 JS 语法检查：`node --check` 通过。
+  - Flask test client 冒烟测试未执行：本机 Python 缺少后端依赖 `flask_cors`，按项目约束不在本地安装依赖。
+  - 服务器测试结果：
+  - `git pull`：成功同步到 `df13a8c`。
+  - `python -m compileall app scripts run.py wsgi.py`：通过。
+  - `flask db upgrade`：成功，无新增迁移。
+  - `python scripts/init_data.py`：成功，输出 `Initial data seeded.`。
+  - 重启临时后端进程：`python run.py`，监听 `0.0.0.0:7001`，日志 `/tmp/anbo_wx_task2.log`。
+  - `GET /api/health`：返回 200，`{"code":0,"data":{"status":"healthy"},"message":"ok"}`。
+  - `POST /api/auth/login` 手机号登录：返回 200，`code=0`，`next_action=bind_oss`。
+  - `POST /api/auth/login` OSS 账号登录：返回 200，`code=0`，`next_action=bind_oss`。
+  - `GET /api/auth/me`：返回 200，`code=0`，`next_action=bind_oss`。
+  - `POST /api/auth/bind-oss` 缺少 OSS 密码校验：返回 400，`code=4000`。
+  - `POST /api/auth/change-password` 旧密码错误校验：返回 400，`code=4000`。
+  - `POST /api/auth/logout`：返回 200，`code=0`，`logged_out=true`。
+  - 公网 API 转发修复：为 Nginx `5772` 站点新增 `location ^~ /wx/api/`，转发到 `http://127.0.0.1:7001/api/`。
+  - Nginx reload 因历史 `limit_req` key 冲突未生效，已执行 `systemctl restart nginx` 让配置生效。
+  - 公网 `GET https://anbo.njcatv.net:5772/wx/api/health`：返回 200 JSON，并带 `X-WX-API-Proxy: hit`。
+  - 公网 `POST https://anbo.njcatv.net:5772/wx/api/auth/login`：错误账号返回 401 JSON，不再返回 Nginx 405。
+- Git commit hash：`720b9a4`。
+
+## Task 4 - 用户管理
+- 完成时间：2026-05-24
+- 完成内容：
+  - 新增 `GET /api/admin/users`。
+  - 新增 `GET /api/admin/users/options`。
+  - 新增 `POST /api/admin/users`。
+  - 新增 `PUT /api/admin/users/{id}`。
+  - 新增 `POST /api/admin/users/{id}/disable`。
+  - 新增 `POST /api/admin/users/{id}/enable`。
+  - 新增 `POST /api/admin/users/{id}/reset-password`。
+  - 支持姓名、手机号、OSS 账号、组织、角色、状态、OSS 绑定状态筛选。
+  - super_admin 可管理全部用户；org_admin 限制为管理范围内的 `internal + normal_user`。
+  - 新增用户和重置密码使用手机号后四位 + `@jscn`。
+  - 用户管理操作写入 `operation_logs`。
+  - 新增小程序用户管理页面，支持搜索、新增、编辑、启停和重置密码。
+- 修改文件：
+  - `backend/app/__init__.py`
+  - `backend/app/routes/admin_users.py`
+  - `backend/app/services/user_service.py`
+  - `miniprogram/app.json`
+  - `miniprogram/utils/auth.js`
+  - `miniprogram/utils/adminUsers.js`
+  - `miniprogram/pages/admin/users/*`
+  - `CHANGELOG.md`
+  - `docs/task-log.md`
+  - `task.md`
+- 本地测试结果：
+  - `python -m compileall app scripts run.py wsgi.py`：通过。
+  - 前端 JS 语法和页面 JSON 检查：通过。
+- 服务器测试结果：已在后续 Task 3/5 同步部署时统一验证。
+- Git commit hash：`3719335`。
+
+## Task 3 - 组织管理与菜单管理
+- 完成时间：2026-05-24
+- 完成内容：
+  - 新增 `GET /api/workbench/apps`，从 `app_menus` 读取菜单并按角色、用户类型过滤。
+  - 新增组织管理接口：`GET /api/admin/orgs/tree`、`POST /api/admin/orgs`、`PUT /api/admin/orgs/{id}`、`POST /api/admin/orgs/{id}/disable`。
+  - 新增菜单管理接口：`GET /api/admin/menus`、`POST /api/admin/menus`、`PUT /api/admin/menus/{id}`、`POST /api/admin/menus/{id}/enable`、`POST /api/admin/menus/{id}/disable`。
+  - 组织新增限制为三层，组织禁用不物理删除。
+  - 管理操作写入 `operation_logs`。
+- 修改文件：
+  - `backend/app/__init__.py`
+  - `backend/app/routes/admin_orgs.py`
+  - `backend/app/routes/admin_menus.py`
+  - `backend/app/routes/workbench.py`
+  - `backend/app/services/org_service.py`
+  - `backend/app/services/menu_service.py`
+  - `backend/app/services/workbench_service.py`
+  - `backend/scripts/init_data.py`
+  - `docs/api.md`
+  - `docs/task-log.md`
+  - `CHANGELOG.md`
+  - `task.md`
+- 本地测试结果：
+  - `python3 -m compileall app scripts run.py wsgi.py`：通过。
+
+## Task 5 - 小程序首页工作台、我的页面、前后端联调
+- 完成时间：2026-05-24
+- 完成内容：
+  - 新增工作台页面 `pages/workbench/index`，展示用户姓名、组织、公告、常用应用和全部应用。
+  - 新增我的页面 `pages/profile/index`，展示用户资料、OSS 绑定状态、管理范围，并支持修改密码、OSS 更新、退出登录。
+  - 新增功能管理页 `pages/admin/menus/index`，使用“我的常用 / 全部功能”两段列表接近参考图效果。
+  - 新增组织管理页 `pages/admin/orgs/index`。
+  - 登录成功后统一进入工作台，工作台按 `/api/workbench/apps` 动态渲染应用栏。
+  - 用户管理页补充组织、角色、状态、OSS 绑定状态筛选。
+- 修改文件：
+  - `miniprogram/app.json`
+  - `miniprogram/utils/auth.js`
+  - `miniprogram/utils/workbench.js`
+  - `miniprogram/utils/adminMenus.js`
+  - `miniprogram/utils/adminOrgs.js`
+  - `miniprogram/pages/workbench/*`
+  - `miniprogram/pages/profile/*`
+  - `miniprogram/pages/admin/menus/*`
+  - `miniprogram/pages/admin/orgs/*`
+  - `miniprogram/pages/admin/users/*`
+- 本地测试结果：
+  - 前端 JS 语法检查：`node --check` 通过。
+  - 小程序 JSON 解析检查：通过。
+  - WXML 不支持的方法调用扫描：未发现。
+- 服务器测试结果：待本次提交推送后同步服务器执行。
+- Git commit hash：待提交。

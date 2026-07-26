@@ -1,0 +1,121 @@
+<view class="page ip-page">
+  <view class="page-header">
+    <view class="page-title">网络/IP 地址计算器</view>
+    <view class="page-subtitle">用于快速计算网络地址、广播地址、可用地址范围、子网掩码和地址数量</view>
+  </view>
+
+  <view class="tab-strip">
+    <view class="tab-item {{activeTab === 'network' ? 'active' : ''}}" data-tab="network" bindtap="switchTab">IP/CIDR 计算</view>
+    <view class="tab-item {{activeTab === 'mask' ? 'active' : ''}}" data-tab="mask" bindtap="switchTab">掩码换算</view>
+    <view class="tab-item {{activeTab === 'required' ? 'active' : ''}}" data-tab="required" bindtap="switchTab">地址数反推</view>
+  </view>
+
+  <view wx:if="{{activeTab === 'network'}}" class="tab-content">
+    <view class="panel form-panel">
+      <view class="block-title">输入参数</view>
+      <view class="form-item">
+        <view class="field-label">IP 地址</view>
+        <input class="field-input" value="{{networkIp}}" data-key="networkIp" bindinput="onInput" placeholder="请输入 IP 地址，如 10.0.0.5" />
+      </view>
+      <view class="form-item">
+        <view class="field-label">掩码位</view>
+        <input class="field-input" type="number" value="{{networkCidr}}" data-key="networkCidr" bindinput="onInput" placeholder="请输入掩码位，如 24" />
+      </view>
+      <view class="button-row">
+        <button class="primary-button calc-button" bindtap="calculateNetwork">计算</button>
+        <button class="secondary-button calc-button" bindtap="clearNetwork">清空</button>
+      </view>
+      <view wx:if="{{networkError}}" class="error-text">{{networkError}}</view>
+    </view>
+
+    <view class="panel result-panel">
+      <view class="block-title">计算结果</view>
+      <view wx:if="{{networkResults.length === 0}}" class="empty-result">请输入参数后点击计算</view>
+      <view wx:else class="result-list">
+        <view wx:for="{{networkResults}}" wx:key="label" class="result-row">
+          <view class="result-main">
+            <view class="result-label">{{item.label}}</view>
+            <view class="result-value {{item.emphasis}}">{{item.value}}</view>
+          </view>
+          <button wx:if="{{item.copyable}}" class="copy-button" data-value="{{item.value}}" bindtap="copyValue">复制</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{activeTab === 'mask'}}" class="tab-content">
+    <view class="panel form-panel">
+      <view class="block-title">CIDR 转子网掩码</view>
+      <view class="form-item">
+        <view class="field-label">掩码位</view>
+        <input class="field-input" type="number" value="{{cidrMaskInput}}" data-key="cidrMaskInput" bindinput="onInput" placeholder="请输入掩码位，如 24" />
+      </view>
+      <view class="button-row">
+        <button class="primary-button calc-button" bindtap="calculateCidrMask">换算</button>
+        <button class="secondary-button calc-button" bindtap="clearMask">清空</button>
+      </view>
+      <view wx:if="{{cidrMaskResults.length === 0}}" class="empty-result inline-empty">请输入参数后点击计算</view>
+      <view wx:else class="result-list compact-list">
+        <view wx:for="{{cidrMaskResults}}" wx:key="label" class="result-row">
+          <view class="result-main">
+            <view class="result-label">{{item.label}}</view>
+            <view class="result-value {{item.emphasis}}">{{item.value}}</view>
+          </view>
+          <button wx:if="{{item.copyable}}" class="copy-button" data-value="{{item.value}}" bindtap="copyValue">复制</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="panel form-panel">
+      <view class="block-title">子网掩码转 CIDR</view>
+      <view class="form-item">
+        <view class="field-label">子网掩码</view>
+        <input class="field-input" value="{{maskInput}}" data-key="maskInput" bindinput="onInput" placeholder="请输入子网掩码，如 255.255.255.0" />
+      </view>
+      <view class="button-row">
+        <button class="primary-button calc-button" bindtap="calculateMaskCidr">换算</button>
+        <button class="secondary-button calc-button" bindtap="clearMask">清空</button>
+      </view>
+      <view wx:if="{{maskError}}" class="error-text">{{maskError}}</view>
+      <view wx:if="{{maskResults.length === 0}}" class="empty-result inline-empty">请输入参数后点击计算</view>
+      <view wx:else class="result-list compact-list">
+        <view wx:for="{{maskResults}}" wx:key="label" class="result-row">
+          <view class="result-main">
+            <view class="result-label">{{item.label}}</view>
+            <view class="result-value {{item.emphasis}}">{{item.value}}</view>
+          </view>
+          <button wx:if="{{item.copyable}}" class="copy-button" data-value="{{item.value}}" bindtap="copyValue">复制</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{activeTab === 'required'}}" class="tab-content">
+    <view class="panel form-panel">
+      <view class="block-title">输入参数</view>
+      <view class="form-item">
+        <view class="field-label">需要可用地址数量</view>
+        <input class="field-input" type="number" value="{{requiredHostCount}}" data-key="requiredHostCount" bindinput="onInput" placeholder="请输入数量，如 30" />
+      </view>
+      <view class="button-row">
+        <button class="primary-button calc-button" bindtap="calculateRequired">反推</button>
+        <button class="secondary-button calc-button" bindtap="clearRequired">清空</button>
+      </view>
+      <view wx:if="{{requiredError}}" class="error-text">{{requiredError}}</view>
+    </view>
+
+    <view class="panel result-panel">
+      <view class="block-title">推荐结果</view>
+      <view wx:if="{{requiredResults.length === 0}}" class="empty-result">请输入参数后点击计算</view>
+      <view wx:else class="result-list">
+        <view wx:for="{{requiredResults}}" wx:key="label" class="result-row">
+          <view class="result-main">
+            <view class="result-label">{{item.label}}</view>
+            <view class="result-value {{item.emphasis}}">{{item.value}}</view>
+          </view>
+          <button wx:if="{{item.copyable}}" class="copy-button" data-value="{{item.value}}" bindtap="copyValue">复制</button>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

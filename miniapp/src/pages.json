@@ -1,0 +1,159 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationBarBackgroundColor": "#2f3b4a",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/workbench/index",
+      "style": {
+        "navigationBarTitleText": "菜单",
+        "navigationBarBackgroundColor": "#2f3b4a",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/my/index",
+      "style": {
+        "navigationBarTitleText": "我的",
+        "navigationBarBackgroundColor": "#2f3b4a",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/users/index",
+      "style": {
+        "navigationBarTitleText": "用户管理"
+      }
+    },
+    {
+      "path": "pages/auth/change-password/index",
+      "style": {
+        "navigationBarTitleText": "修改密码"
+      }
+    },
+    {
+      "path": "pages/auth/bind-oss/index",
+      "style": {
+        "navigationBarTitleText": "OSS 账号确认"
+      }
+    },
+    {
+      "path": "pages/admin/menus/index",
+      "style": {
+        "navigationBarTitleText": "功能管理"
+      }
+    },
+    {
+      "path": "pages/admin/orgs/index",
+      "style": {
+        "navigationBarTitleText": "组织管理"
+      }
+    },
+    {
+      "path": "pages/admin/audit/index",
+      "style": {
+        "navigationBarTitleText": "日志查看"
+      }
+    },
+    {
+      "path": "pages/admin/servers/index",
+      "style": {
+        "navigationBarTitleText": "服务器管理"
+      }
+    },
+    {
+      "path": "pages/watermark-camera/index",
+      "style": {
+        "navigationBarTitleText": "水印相机"
+      }
+    },
+    {
+      "path": "pages/ip-calculator/ip-calculator",
+      "style": {
+        "navigationBarTitleText": "IP 计算器"
+      }
+    },
+    {
+      "path": "pages/netops/dashboard/index",
+      "style": {
+        "navigationBarTitleText": "网络运行总览",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/netops/onu/index",
+      "style": {
+        "navigationBarTitleText": "ONU 查询"
+      }
+    },
+    {
+      "path": "pages/netops/quality/index",
+      "style": {
+        "navigationBarTitleText": "ONU 质差管理"
+      }
+    },
+    {
+      "path": "pages/netops/performance/index",
+      "style": {
+        "navigationBarTitleText": "OLT 性能"
+      }
+    },
+    {
+      "path": "pages/netops/collector/index",
+      "style": {
+        "navigationBarTitleText": "采集监控"
+      }
+    },
+    {
+      "path": "pages/netops/devices/index",
+      "style": {
+        "navigationBarTitleText": "OLT 设备"
+      }
+    },
+    {
+      "path": "pages/netops/hfc/index",
+      "style": {
+        "navigationBarTitleText": "HFC 网管"
+      }
+    },
+    {
+      "path": "pages/netops/boss-users/index",
+      "style": {
+        "navigationBarTitleText": "BOSS 用户"
+      }
+    },
+    {
+      "path": "pages/netops/admin/index",
+      "style": {
+        "navigationBarTitleText": "网管配置"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "智维助手",
+    "navigationBarBackgroundColor": "#203147",
+    "backgroundColor": "#f3f6f9"
+  },
+  "tabBar": {
+    "color": "#6b7785",
+    "selectedColor": "#1f6feb",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/workbench/index",
+        "text": "菜单"
+      },
+      {
+        "pagePath": "pages/my/index",
+        "text": "我的"
+      }
+    ]
+  }
+}

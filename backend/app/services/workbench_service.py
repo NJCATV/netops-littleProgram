@@ -13,9 +13,7 @@ def visible_menus_for_user(user):
     items = [
         menu.to_dict()
         for menu in menus
-        # System administrators must retain every enabled management entry even
-        # when their account is typed as `system` and a menu is marked internal.
-        if has_role(user, menu.min_role) and (user.role_code == "super_admin" or menu.user_type in {user.user_type, "all"})
+        if has_role(user, menu.min_role) and menu.user_type in {user.user_type, "all"}
     ]
 
     groups = OrderedDict()

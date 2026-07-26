@@ -16,8 +16,11 @@ ROLE_CODES = {"super_admin", "org_admin", "normal_user"}
 USER_STATUS = {"active", "disabled", "pending"}
 
 
-def initial_password():
-    # 临时密码不可由手机号推导；首次登录仍会强制修改。
+def initial_password(mobile):
+    """OA 人员使用公司初始密码规则；非手机号系统账号仍使用随机密码。"""
+    normalized = re.sub(r"\D", "", mobile or "")
+    if VALID_MOBILE_RE.fullmatch(normalized):
+        return f"Jscn@{normalized[-4:]}"
     return secrets.token_urlsafe(12)
 
 
@@ -53,6 +56,7 @@ def validate_payload(actor, payload, updating=False):
     org_id = payload.get("org_id")
     manage_org_id = payload.get("manage_org_id")
     oss_account = (payload.get("oss_account") or "").strip() or None
+    oa_username = (payload.get("oa_username") or "").strip() or None
 
     if not real_name:
         return None, "real_name is required"
@@ -100,6 +104,7 @@ def validate_payload(actor, payload, updating=False):
         "org_id": normalized_org_id,
         "manage_org_id": normalized_manage_org_id,
         "oss_account": oss_account,
+        "oa_username": oa_username,
     }, None
 
 
@@ -116,7 +121,12 @@ def query_users(actor, args):
     keyword = (args.get("keyword") or "").strip()
     if keyword:
         like = f"%{keyword}%"
-        query = query.filter(or_(User.real_name.like(like), User.mobile.like(like), User.oss_account.like(like)))
+        query = query.filter(or_(
+            User.real_name.like(like),
+            User.mobile.like(like),
+            User.oa_username.like(like),
+            User.oss_account.like(like),
+        ))
 
     for field in ("role_code", "status", "oss_bind_status", "user_type"):
         value = (args.get(field) or "").strip()
@@ -164,8 +174,10 @@ def create_user(actor, request, payload):
         return None, "mobile already exists"
     if data["oss_account"] and User.query.filter_by(oss_account=data["oss_account"]).first():
         return None, "oss_account already exists"
+    if data["oa_username"] and User.query.filter_by(oa_username=data["oa_username"]).first():
+        return None, "oa_username already exists"
 
-    temporary_password = initial_password()
+    temporary_password = initial_password(data["mobile"])
     user = User(
         **data,
         password_hash=hash_password(temporary_password),
@@ -199,6 +211,10 @@ def update_user(actor, request, user_id, payload):
         oss_owner = User.query.filter(User.oss_account == data["oss_account"], User.id != target.id).first()
         if oss_owner:
             return None, "oss_account already exists"
+    if data["oa_username"]:
+        oa_owner = User.query.filter(User.oa_username == data["oa_username"], User.id != target.id).first()
+        if oa_owner:
+            return None, "oa_username already exists"
 
     old_oss = target.oss_account
     for key, value in data.items():
@@ -237,7 +253,7 @@ def reset_password(actor, request, user_id):
     if not can_manage_user(actor, target):
         return None, "permission denied"
 
-    temporary_password = initial_password()
+    temporary_password = initial_password(target.mobile)
     target.password_hash = hash_password(temporary_password)
     target.password_status = "initial"
     add_operation_log(request, actor, "admin.users", "reset_password", "user", target.id, f"mobile={target.mobile}")

@@ -12,15 +12,21 @@ from app.utils.jwt import create_access_token
 from app.utils.security import encrypt_oss_password, hash_password, verify_password
 
 
-def find_user_by_account(account):
-    return User.query.filter(or_(User.mobile == account, User.oss_account == account)).first()
+def find_users_by_account(account):
+    normalized = (account or "").strip()
+    return User.query.filter(or_(
+        User.mobile == normalized,
+        User.oa_username == normalized,
+        User.oss_account == normalized,
+    )).all()
 
 
 def password_is_strong(password):
-    if len(password or "") < 12:
+    """平台密码至少 8 位，并包含大小写字母、数字、特殊字符中的至少两类。"""
+    if len(password or "") < 8:
         return False
     classes = sum(bool(re.search(pattern, password)) for pattern in (r"[a-z]", r"[A-Z]", r"\d", r"[^A-Za-z0-9]"))
-    return classes >= 3
+    return classes >= 2
 
 
 def login(request, account, password):
@@ -41,21 +47,22 @@ def login(request, account, password):
         add_login_log(request, account, "fail", fail_reason="temporary rate limit")
         db.session.commit()
         return None, "too many failed attempts, try again in 15 minutes"
-    user = find_user_by_account(account)
-    if user is None:
+    candidates = find_users_by_account(account)
+    if not candidates:
         add_login_log(request, account, "fail", fail_reason="user not found")
         db.session.commit()
         return None, "account or password is incorrect"
 
-    if user.status != "active":
-        add_login_log(request, account, "fail", user=user, fail_reason="user disabled")
+    matches = [
+        candidate for candidate in candidates
+        if candidate.status == "active" and verify_password(candidate.password_hash, password)
+    ]
+    if len(matches) != 1:
+        reason = "ambiguous account" if len(matches) > 1 else "invalid password or disabled user"
+        add_login_log(request, account, "fail", fail_reason=reason)
         db.session.commit()
         return None, "account or password is incorrect"
-
-    if not verify_password(user.password_hash, password):
-        add_login_log(request, account, "fail", user=user, fail_reason="invalid password")
-        db.session.commit()
-        return None, "account or password is incorrect"
+    user = matches[0]
 
     user.last_login_at = datetime.utcnow()
     add_login_log(request, account, "success", user=user)
@@ -127,7 +134,7 @@ def change_password(request, user, old_password, new_password):
     if not old_password or not new_password:
         return None, "old_password and new_password are required"
     if not password_is_strong(new_password):
-        return None, "新密码至少 12 位，并需包含大小写字母、数字、特殊字符中的至少三类"
+        return None, "新密码至少 8 位，并需包含大小写字母、数字、特殊字符中的至少两类"
     if old_password == new_password:
         return None, "new password must be different from old password"
     if not verify_password(user.password_hash, old_password):

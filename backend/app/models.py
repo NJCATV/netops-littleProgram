@@ -26,8 +26,8 @@ WORK_ORDER_STATUSES = (
 )
 WORK_ORDER_PRIORITIES = ("P1", "P2", "P3", "P4")
 SERVER_ASSET_STATUSES = ("active", "maintenance", "offline")
-SERVER_ASSET_ENVIRONMENTS = ("production", "staging", "test", "backup")
-SERVER_CREDENTIAL_TYPES = ("ssh", "mysql", "database", "redis", "kafka", "api", "web", "switch", "other")
+SERVER_ASSET_ENVIRONMENTS = ("production", "staging", "test")
+SERVER_CREDENTIAL_TYPES = ("ssh", "mysql", "database", "redis", "kafka", "web", "other")
 
 
 class TimestampMixin:
@@ -82,6 +82,7 @@ class User(TimestampMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_type = db.Column(db.String(20), nullable=False, default="internal")
     mobile = db.Column(db.String(32), nullable=False, unique=True)
+    oa_username = db.Column(db.String(64), nullable=True, unique=True)
     oss_account = db.Column(db.String(64), nullable=True, unique=True)
     oss_password_cipher = db.Column(db.Text, nullable=True)
     oss_bind_status = db.Column(db.String(20), nullable=False, default="unbound")
@@ -131,6 +132,7 @@ class User(TimestampMixin, db.Model):
             "real_name": self.real_name,
             "avatar_url": self.avatar_url,
             "mobile": self.mobile,
+            "oa_username": self.oa_username,
             "oss_account": self.oss_account,
             "oss_bind_status": self.oss_bind_status,
             "org_id": self.org_id,
@@ -228,33 +230,23 @@ class ServerAsset(TimestampMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     owner_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    group_id = db.Column(db.Integer, db.ForeignKey("server_asset_groups.id"), nullable=True)
     name = db.Column(db.String(128), nullable=False)
-    icon = db.Column(db.String(32), nullable=False, default="linux")
     hostname = db.Column(db.String(128), nullable=True)
     intranet_ip = db.Column(db.String(64), nullable=True)
     public_ip = db.Column(db.String(64), nullable=True)
     role = db.Column(db.String(128), nullable=True)
     location = db.Column(db.String(128), nullable=True)
     owner_name = db.Column(db.String(64), nullable=True)
-    os_name = db.Column(db.String(64), nullable=True)
-    os_version = db.Column(db.String(64), nullable=True)
-    upstream_device = db.Column(db.String(128), nullable=True)
-    upstream_port = db.Column(db.String(64), nullable=True)
-    upstream_vlan = db.Column(db.String(64), nullable=True)
-    upstream_network = db.Column(db.String(128), nullable=True)
-    ufw_enabled = db.Column(db.Boolean, nullable=True)
     environment = db.Column(db.String(32), nullable=False, default="production")
     status = db.Column(db.String(32), nullable=False, default="active")
     remark = db.Column(db.String(255), nullable=True)
     last_checked_at = db.Column(db.DateTime, nullable=True)
 
     owner = db.relationship("User", foreign_keys=[owner_id])
-    group = db.relationship("ServerAssetGroup", backref="servers")
 
     __table_args__ = (
         CheckConstraint(
-            "environment in ('production', 'staging', 'test', 'backup')",
+            "environment in ('production', 'staging', 'test')",
             name="ck_server_assets_environment",
         ),
         CheckConstraint(
@@ -263,37 +255,24 @@ class ServerAsset(TimestampMixin, db.Model):
         ),
         Index("ix_server_assets_name", "name"),
         Index("ix_server_assets_owner_id", "owner_id"),
-        Index("ix_server_assets_group_id", "group_id"),
         Index("ix_server_assets_hostname", "hostname"),
         Index("ix_server_assets_intranet_ip", "intranet_ip"),
         Index("ix_server_assets_status", "status"),
         Index("ix_server_assets_environment", "environment"),
     )
 
-    def to_dict(self, share_user_ids=None, group_share_user_ids=None, can_manage=False):
+    def to_dict(self, share_user_ids=None, can_manage=False):
         return {
             "id": self.id,
             "owner_id": self.owner_id,
             "owner_name": self.owner_name or (self.owner.real_name if self.owner else ""),
-            "group_id": self.group_id,
-            "group_name": self.group.name if self.group else "",
-            "group_share_user_ids": group_share_user_ids or [],
-            "group_share_count": len(group_share_user_ids or []),
             "can_manage": can_manage,
             "name": self.name,
-            "icon": self.icon,
             "hostname": self.hostname,
             "intranet_ip": self.intranet_ip,
             "public_ip": self.public_ip,
             "role": self.role,
             "location": self.location,
-            "os_name": self.os_name,
-            "os_version": self.os_version,
-            "upstream_device": self.upstream_device,
-            "upstream_port": self.upstream_port,
-            "upstream_vlan": self.upstream_vlan,
-            "upstream_network": self.upstream_network,
-            "ufw_enabled": self.ufw_enabled,
             "environment": self.environment,
             "status": self.status,
             "remark": self.remark,
@@ -303,49 +282,6 @@ class ServerAsset(TimestampMixin, db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
-
-
-class ServerAssetGroup(TimestampMixin, db.Model):
-    __tablename__ = "server_asset_groups"
-
-    id = db.Column(db.Integer, primary_key=True)
-    owner_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    name = db.Column(db.String(128), nullable=False)
-
-    owner = db.relationship("User", foreign_keys=[owner_id])
-
-    __table_args__ = (
-        db.UniqueConstraint("owner_id", "name", name="uq_server_asset_groups_owner_name"),
-        Index("ix_server_asset_groups_owner_id", "owner_id"),
-        Index("ix_server_asset_groups_name", "name"),
-    )
-
-    def to_dict(self, share_user_ids=None):
-        return {
-            "id": self.id,
-            "owner_id": self.owner_id,
-            "name": self.name,
-            "share_user_ids": share_user_ids or [],
-            "share_count": len(share_user_ids or []),
-        }
-
-
-class ServerAssetGroupShare(db.Model):
-    __tablename__ = "server_asset_group_shares"
-
-    id = db.Column(db.Integer, primary_key=True)
-    group_id = db.Column(db.Integer, db.ForeignKey("server_asset_groups.id"), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
-    group = db.relationship("ServerAssetGroup", backref="shares")
-    user = db.relationship("User")
-
-    __table_args__ = (
-        db.UniqueConstraint("group_id", "user_id", name="uq_server_asset_group_shares_group_user"),
-        Index("ix_server_asset_group_shares_group_id", "group_id"),
-        Index("ix_server_asset_group_shares_user_id", "user_id"),
-    )
 
 
 class ServerAssetShare(db.Model):
@@ -385,7 +321,7 @@ class ServerCredential(TimestampMixin, db.Model):
 
     __table_args__ = (
         CheckConstraint(
-            "credential_type in ('ssh', 'mysql', 'database', 'redis', 'kafka', 'api', 'web', 'switch', 'other')",
+            "credential_type in ('ssh', 'mysql', 'database', 'redis', 'kafka', 'web', 'other')",
             name="ck_server_credentials_type",
         ),
         Index("ix_server_credentials_server_id", "server_id"),
@@ -428,16 +364,6 @@ class ServerCredential(TimestampMixin, db.Model):
             if bootstrap:
                 return f"kafka-topics.sh --bootstrap-server {bootstrap} --list"
             return "kafka-topics.sh --bootstrap-server <host:port> --list"
-        if self.credential_type == "api":
-            target = host
-            if host and self.port and ":" not in host.rsplit("/", 1)[-1]:
-                target = f"{host}:{self.port}"
-            return f"curl {target}" if target else ""
-        if self.credential_type == "web":
-            target = host
-            if host and self.port and ":" not in host.rsplit("/", 1)[-1]:
-                target = f"{host}:{self.port}"
-            return target or ""
         return ""
 
     def to_dict(self, include_secret=False, secret=None):

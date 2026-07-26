@@ -5,17 +5,9 @@
         <image v-if="avatarSrc" class="avatar avatar-image" :src="avatarSrc" mode="aspectFill" />
         <view v-else class="avatar">{{ initial }}</view>
         <view class="user-copy">
-          <view class="hello">欢迎回来</view>
           <view class="user-name">{{ user.real_name || '智维用户' }}</view>
           <view class="user-meta">{{ user.org_name || '未分配组织' }}｜{{ roleLabel(user.role_code) }}</view>
         </view>
-      </view>
-      <view class="platform-line">
-        <view>
-          <view class="platform-title">智维工作台</view>
-          <view class="platform-sub">工单、网管与现场工具统一入口</view>
-        </view>
-        <view class="platform-badge">移动运维</view>
       </view>
     </view>
 
@@ -28,13 +20,10 @@
 
     <view v-else class="group-list">
       <view v-for="group in groups" :key="group.group_name" class="menu-section">
-        <view class="section-row">
-          <view class="section-title">{{ group.group_name }}</view>
-          <view class="section-count">{{ group.items.length }} 项</view>
-        </view>
+        <view class="section-title">{{ group.group_name }}</view>
         <view class="menu-grid">
           <view v-for="item in group.items" :key="item.menu_key" class="menu-item" @tap="openApp(item)">
-            <view class="menu-icon" :class="iconClass(displayIcon(item))">{{ iconText(displayIcon(item)) }}</view>
+            <view class="menu-icon" :class="iconClass(item.icon)">{{ iconText(item.icon) }}</view>
             <view class="menu-name">{{ item.name }}</view>
           </view>
         </view>
@@ -49,68 +38,6 @@ import { onShow } from '@dcloudio/uni-app'
 import { getStoredUser, requireLogin, resolveAssetUrl } from '../../api/auth'
 import { listApps } from '../../api/menu'
 import { messageLabel, roleLabel } from '../../utils/labels'
-
-// Production menus are shared with the legacy Web netops platform. Keep its
-// route values compatible until all backend menu records use uni-app paths.
-const legacyNetopsRoutes = {
-  '/dashboard': '/pages/netops/dashboard/index',
-  '/onu-search': '/pages/netops/onu/index',
-  '/quality': '/pages/netops/quality/index',
-  '/performance': '/pages/netops/performance/index',
-  '/collector': '/pages/netops/collector/index',
-  '/devices': '/pages/netops/devices/index',
-  '/probe': '/pages/netops/devices/index',
-  '/hfc': '/pages/netops/hfc/index',
-  '/cm-search': '/pages/netops/hfc/index',
-  '/cmts-devices': '/pages/netops/hfc/index',
-  '/boss-users': '/pages/netops/boss-users/index',
-  '/settings': '/pages/netops/admin/index',
-  '/device-orgs': '/pages/netops/admin/index',
-  '/permissions': '/pages/netops/admin/index'
-}
-
-const netopsMenuKeys = {
-  'netops.dashboard': '/pages/netops/dashboard/index',
-  'netops.onu': '/pages/netops/onu/index',
-  'netops.quality': '/pages/netops/quality/index',
-  'netops.performance': '/pages/netops/performance/index',
-  'netops.collector': '/pages/netops/collector/index',
-  'netops.devices': '/pages/netops/devices/index',
-  'netops.hfc': '/pages/netops/hfc/index',
-  'netops.boss-users': '/pages/netops/boss-users/index',
-  'netops.admin': '/pages/netops/admin/index'
-}
-
-const netopsNames = {
-  '统一驾驶舱': '/pages/netops/dashboard/index',
-  '网络总览': '/pages/netops/dashboard/index',
-  '单台ONU查询': '/pages/netops/onu/index',
-  'ONU查询': '/pages/netops/onu/index',
-  'ONU质差管理': '/pages/netops/quality/index',
-  'OLT性能看板': '/pages/netops/performance/index',
-  '采集监控': '/pages/netops/collector/index',
-  'OLT设备管理': '/pages/netops/devices/index',
-  'CMCMTS查询': '/pages/netops/hfc/index',
-  'CMMAC查询': '/pages/netops/hfc/index',
-  'CMTS设备管理': '/pages/netops/hfc/index',
-  'BOSS用户管理': '/pages/netops/boss-users/index',
-  '设备组织管理': '/pages/netops/admin/index',
-  '网管配置': '/pages/netops/admin/index',
-  '系统配置': '/pages/netops/admin/index',
-  '权限管理': '/pages/netops/admin/index'
-}
-
-const routeIcons = {
-  '/pages/netops/dashboard/index': 'dashboard',
-  '/pages/netops/onu/index': 'onu',
-  '/pages/netops/quality/index': 'quality',
-  '/pages/netops/performance/index': 'performance',
-  '/pages/netops/collector/index': 'collector',
-  '/pages/netops/devices/index': 'olt',
-  '/pages/netops/hfc/index': 'hfc',
-  '/pages/netops/boss-users/index': 'customer',
-  '/pages/netops/admin/index': 'setting'
-}
 
 const user = ref(getStoredUser())
 const groups = ref([])
@@ -128,7 +55,6 @@ function loadPage() {
   requireLogin()
     .then((data) => {
       user.value = data.user || getStoredUser()
-      showOssReminderIfNeeded(user.value)
       return listApps()
     })
     .then((data) => {
@@ -150,25 +76,6 @@ function loadPage() {
     })
 }
 
-function showOssReminderIfNeeded(currentUser) {
-  if (!currentUser || currentUser.oss_bind_status === 'bound' || uni.getStorageSync('oss_reminder_skipped')) {
-    return
-  }
-
-  uni.showModal({
-    title: 'OSS 账号未绑定',
-    content: '绑定后可使用 OSS 相关能力。现在可以先进入系统，稍后在“我的”页面绑定。',
-    confirmText: '去绑定',
-    cancelText: '稍后',
-    success(result) {
-      uni.setStorageSync('oss_reminder_skipped', true)
-      if (result.confirm) {
-        uni.navigateTo({ url: '/pages/auth/bind-oss/index' })
-      }
-    }
-  })
-}
-
 function groupItems(items) {
   const map = {}
   items.forEach((item) => {
@@ -182,41 +89,22 @@ function groupItems(items) {
 }
 
 function openApp(item) {
-  const path = resolveMiniappPath(item)
-  if (!path) {
+  if (!item.path) {
     uni.showToast({ title: '功能开发中，敬请期待', icon: 'none' })
     return
   }
 
-  if (path === '/pages/workbench/index' || path === '/pages/my/index') {
-    uni.switchTab({ url: path })
+  if (item.path === '/pages/menu/index' || item.path === '/pages/my/index') {
+    uni.switchTab({ url: item.path })
     return
   }
 
   uni.navigateTo({
-    url: path,
+    url: item.path,
     fail() {
-      uni.showToast({ title: '页面暂不可用，请联系管理员', icon: 'none' })
+      uni.showToast({ title: '页面待迁移', icon: 'none' })
     }
   })
-}
-
-function resolveMiniappPath(item) {
-  const rawPath = String(item.path || '').trim()
-  const route = rawPath.split(/[?#]/)[0]
-  const normalizedRoute = route && route.startsWith('/') ? route : route ? `/${route}` : ''
-  const normalizedName = String(item.name || '').replace(/[\s/（）()_-]/g, '')
-
-  return legacyNetopsRoutes[normalizedRoute]
-    || netopsMenuKeys[item.menu_key]
-    || netopsNames[normalizedName]
-    || rawPath
-}
-
-function displayIcon(item) {
-  const icon = String(item.icon || '')
-  const knownIcons = ['camera', 'calculator', 'search', 'calendar', 'folder-search', 'usergroup', 'tree', 'app', 'log', 'server', 'setting', 'dashboard', 'onu', 'quality', 'performance', 'collector', 'olt', 'hfc', 'customer', 'organization']
-  return knownIcons.includes(icon) ? icon : (routeIcons[resolveMiniappPath(item)] || icon)
 }
 
 function iconText(icon) {
@@ -231,16 +119,7 @@ function iconText(icon) {
     app: '菜',
     log: '志',
     server: '服',
-    setting: '设',
-    dashboard: '览',
-    onu: '光',
-    quality: '质',
-    performance: '性',
-    collector: '采',
-    olt: '网',
-    hfc: '缆',
-    customer: '客',
-    organization: '域'
+    setting: '设'
   }
   return map[icon] || '用'
 }
@@ -252,14 +131,13 @@ function iconClass(icon) {
 
 <style scoped>
 .menu-page {
-  padding-bottom: 46rpx;
+  padding-bottom: 38rpx;
 }
 
 .top-band {
-  margin: -24rpx -24rpx 28rpx;
-  padding: 44rpx 32rpx 34rpx;
-  border-radius: 0 0 30rpx 30rpx;
-  background: linear-gradient(145deg, #203147 0%, #2f4c70 100%);
+  margin: -28rpx -24rpx 28rpx;
+  padding: 58rpx 32rpx 34rpx;
+  background: #2f3b4a;
   color: #ffffff;
 }
 
@@ -290,15 +168,9 @@ function iconClass(icon) {
   min-width: 0;
 }
 
-.hello {
-  margin-bottom: 2rpx;
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 21rpx;
-}
-
 .user-name {
   overflow: hidden;
-  font-size: 34rpx;
+  font-size: 32rpx;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -310,44 +182,14 @@ function iconClass(icon) {
   font-size: 24rpx;
 }
 
-.platform-line {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 20rpx;
-  margin-top: 32rpx;
-  padding-top: 28rpx;
-  border-top: 1rpx solid rgba(255, 255, 255, 0.13);
-}
-
-.platform-title { font-size: 29rpx; font-weight: 700; }
-.platform-sub { margin-top: 7rpx; color: rgba(255,255,255,.63); font-size: 22rpx; }
-.platform-badge { padding: 9rpx 16rpx; border-radius: 99rpx; background: rgba(255,255,255,.12); color: rgba(255,255,255,.86); font-size: 20rpx; }
-
 .group-list {
   display: flex;
   flex-direction: column;
   gap: 28rpx;
 }
 
-.menu-section {
-  padding: 24rpx 20rpx 20rpx;
-  border: 1rpx solid #e5ebf1;
-  border-radius: 20rpx;
-  background: #fff;
-}
-
-.section-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.section-count { color: #8793a2; font-size: 21rpx; }
-
 .section-title {
-  margin-bottom: 18rpx;
+  margin-bottom: 16rpx;
   color: #1f2933;
   font-size: 30rpx;
   font-weight: 700;
@@ -364,9 +206,10 @@ function iconClass(icon) {
   flex-direction: column;
   align-items: center;
   min-width: 0;
-  padding: 14rpx 4rpx 10rpx;
-  border-radius: 14rpx;
-  background: #f8fafc;
+  padding: 18rpx 4rpx;
+  border: 1rpx solid #e4e9ef;
+  border-radius: 8rpx;
+  background: #ffffff;
 }
 
 .menu-icon {
@@ -375,8 +218,8 @@ function iconClass(icon) {
   justify-content: center;
   width: 70rpx;
   height: 70rpx;
-  border-radius: 18rpx;
-  background: #2d6fbd;
+  border-radius: 8rpx;
+  background: #1f6feb;
   color: #ffffff;
   font-size: 28rpx;
   font-weight: 700;
@@ -399,17 +242,6 @@ function iconClass(icon) {
 .icon-setting {
   background: #b45f06;
 }
-
-.icon-dashboard,
-.icon-onu,
-.icon-performance,
-.icon-olt { background: #2d6fbd; }
-
-.icon-quality,
-.icon-collector { background: #c37720; }
-
-.icon-hfc,
-.icon-customer { background: #6e58c8; }
 
 .menu-name {
   width: 100%;

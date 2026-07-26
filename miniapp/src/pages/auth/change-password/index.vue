@@ -9,13 +9,13 @@
       <view class="field">
         <view class="field-label">新密码</view>
         <input v-model="newPassword" class="input" password placeholder="请输入新密码" placeholder-class="placeholder" />
-        <view class="password-hint">至少 12 位，并包含大小写字母、数字、特殊字符中的至少三类</view>
       </view>
       <view class="field">
         <view class="field-label">确认新密码</view>
         <input v-model="confirmPassword" class="input" password placeholder="请再次输入新密码" placeholder-class="placeholder" />
       </view>
       <button class="primary-button submit-button" :loading="submitting" :disabled="submitting" @tap="submit">保存</button>
+      <button class="skip-button" :disabled="submitting" @tap="skip">暂时跳过</button>
     </view>
   </view>
 </template>
@@ -30,6 +30,10 @@ const newPassword = ref('')
 const confirmPassword = ref('')
 const submitting = ref(false)
 
+function skip() {
+  uni.switchTab({ url: '/pages/menu/index' })
+}
+
 function submit() {
   if (!oldPassword.value || !newPassword.value) {
     uni.showToast({ title: '请填写原密码和新密码', icon: 'none' })
@@ -37,11 +41,6 @@ function submit() {
   }
   if (newPassword.value !== confirmPassword.value) {
     uni.showToast({ title: '两次新密码不一致', icon: 'none' })
-    return
-  }
-  const classes = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((pattern) => pattern.test(newPassword.value)).length
-  if (newPassword.value.length < 12 || classes < 3) {
-    uni.showToast({ title: '新密码强度不足', icon: 'none' })
     return
   }
 
@@ -74,15 +73,17 @@ function submit() {
   margin-top: 22rpx;
 }
 
-.password-hint {
-  margin-top: 10rpx;
-  color: #7f8b99;
-  font-size: 21rpx;
-  line-height: 1.45;
-}
-
 .submit-button {
   width: 100%;
   margin-top: 34rpx;
+}
+
+.skip-button {
+  width: 100%;
+  margin-top: 18rpx;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 28rpx;
 }
 </style>

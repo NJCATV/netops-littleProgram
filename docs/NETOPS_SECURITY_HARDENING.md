@@ -22,7 +22,7 @@
 3. 配置 `APP_ENV=production`、`JWT_ACCESS_TOKEN_EXPIRES=28800` 和精确的 `CORS_ORIGINS`；不要使用 `*`。
 4. 将 Flask/Gunicorn 只绑定 `127.0.0.1:7001`，公网仅开放 Nginx 的 HTTPS 入口。
 5. Nginx 必须覆盖客户端 IP：`proxy_set_header X-Forwarded-For $remote_addr`，避免伪造转发头绕过登录限流。
-6. 对 `/wx/api/auth/login`、`/wx/api/netops2026/onu/search`、`/wx/api/netops2026/boss/` 分别配置严格的 `limit_req_zone`；BOSS 建议 5r/s 以下并限制突发量。
+6. 对 `/api/auth/login`、`/api/netops2026/onu/search`、`/api/netops2026/boss/` 分别配置严格的 `limit_req_zone`；BOSS 建议 5r/s 以下并限制突发量。
 7. MySQL `6603`、Redis `6379`、Flask `7001` 不直接暴露公网；Redis 绑定回环地址并启用认证或 Unix Socket。
 8. SSH 禁止 root 登录；确认密钥登录可用后再关闭密码登录，并启用 fail2ban。
 9. UFW 默认拒绝入站，仅允许管理网段 SSH、业务 HTTPS 端口及明确的内网依赖。
@@ -57,7 +57,7 @@
 
 - `anbo.njcatv.net` 在当前网络解析为 `172.31.1.233`，属于私网地址，是否存在公网/分线路由仍需在服务器与外部网络复核。
 - 233 的 `5772/tcp` 可达；`22/443/6379/7001` 从当前主机不可达，`6603/tcp` 可达。6603 必须核对是否仅向必要业务/管理网段开放。
-- 线上 `/wx/api/netops2026/boss/access` 返回 404，说明本次 BOSS 二次验证与安全接口尚未部署。
+- 线上 `/api/netops2026/boss/access` 返回 404，说明本次 BOSS 二次验证与安全接口尚未部署。
 - 线上 API 响应仍含 `Access-Control-Allow-Origin: *`；预检请求会回显 `https://evil.example`，并允许 DELETE/GET/PATCH/POST/PUT，说明 Nginx 或旧后端 CORS 配置尚未收口。
 - 236 的 `3339/tcp` 与 `18086/tcp` 从当前主机可达；`22/6379` 不可达。`18086/health` 可匿名返回 200，需限制为仅 233 或监控网段访问。
 - 无认证访问旧版 BOSS 用户列表返回 401，基础登录保护存在，但不能替代新版本的超级管理员校验、二次验证、脱敏和审计。
@@ -67,13 +67,13 @@
 ## 2026-07-17 JSCN-233 实际部署进度
 
 - 从项目根目录 `.env` 读取既有 JSCN-233 SSH/MySQL 配置并成功登录；未从小程序服务器资产模块读取任何凭据。
-- 生产目录为 `/home/yvesyuan/PycharmProjects/anbo_wx/backend`，旧进程是手工 `nohup python run.py`，此前监听 `0.0.0.0:7001`。
+- 生产目录为 `/srv/netops/netops-littleProgram/backend`，旧进程是手工 `nohup python run.py`，此前监听 `0.0.0.0:7001`。
 - 已将 BOSS 二次验证/脱敏/审计、登录限流、密码加固、CORS 白名单和安全响应头代码部署到生产目录；部署前文件备份位于 `backend/deploy-backups/20260717-142326`。
 - 新代码已通过生产虚拟环境 `compileall`、Flask 创建、90 条路由加载、菜单初始化和 Gunicorn `127.0.0.1:7002` 临时健康检查。
-- 已安装 Gunicorn 23.0.0，并安装、校验、启用 `zhiwei-api.service`；单元配置只监听 `127.0.0.1:7001`，包含最小权限和 systemd 沙箱。
+- 已安装 Gunicorn 23.0.0，并安装、校验、启用 `netops-platform-api.service`；单元配置只监听 `127.0.0.1:7001`，包含最小权限和 systemd 沙箱。
 - Nginx 已增加登录/ONU 查询/BOSS 独立限流、429 状态码、`server_tokens off`，并将 `X-Forwarded-For` 固定为 `$remote_addr`；`nginx -t` 和无中断 reload 通过。备份在 `/etc/nginx/backups/`。
 - UFW 已将 SSH `5333` 和 MySQL `6603` 从任意 IPv4/IPv6 来源改为仅允许 `172.31.0.0/16`；新 SSH 会话与 MySQL 连通性验证通过。
 - `13135/12315/3000` 当前虽有历史放行规则但无监听进程，`16200/udp` 由其他账号的业务脚本使用；为避免误伤其他系统，本轮未擅自删除。
-- 当前旧 7001 进程尚未终止，因此磁盘上的新 Python 代码要在切换到 `zhiwei-api.service` 后才会全部生效；本地执行工具禁止远程终止进程，需由维护人员执行一次显式切换。
+- 当前旧 7001 进程尚未终止，因此磁盘上的新 Python 代码要在切换到 `netops-platform-api.service` 后才会全部生效；本地执行工具禁止远程终止进程，需由维护人员执行一次显式切换。
 
 JSCN-236 的项目文档记录了 `jscn123@172.31.1.236:5333`，但两个项目均未保存独立 SSH 密码；复用 233 密码和 233 服务器密钥均认证失败。因此 236 的防火墙和 systemd 加固仍需补充该服务器认证信息。

@@ -24,22 +24,22 @@ server {
 
     # 不在 Nginx 中添加 Access-Control-Allow-Origin。
     # Flask 只对 CORS_ORIGINS 中的来源返回 CORS 响应头。
-    location = /wx/api/auth/login {
+    location = /api/auth/login {
         limit_req zone=wx_login burst=3 nodelay;
         include snippets/wx-api-proxy.conf;
     }
 
-    location = /wx/api/netops2026/onu/search {
+    location = /api/netops2026/onu/search {
         limit_req zone=wx_onu_search burst=10 nodelay;
         include snippets/wx-api-proxy.conf;
     }
 
-    location ^~ /wx/api/netops2026/boss/ {
+    location ^~ /api/netops2026/boss/ {
         limit_req zone=wx_boss burst=5 nodelay;
         include snippets/wx-api-proxy.conf;
     }
 
-    location /wx/api/ {
+    location /api/ {
         include snippets/wx-api-proxy.conf;
     }
 }

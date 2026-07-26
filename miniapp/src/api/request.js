@@ -1,4 +1,4 @@
-const DEFAULT_BASE_URL = 'https://anbo.njcatv.net:5772/wx/api'
+const DEFAULT_BASE_URL = 'https://anbo.njcatv.net:5772/api'
 
 export function getBaseUrl() {
   return uni.getStorageSync('api_base_url') || DEFAULT_BASE_URL

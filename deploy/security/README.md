@@ -9,7 +9,7 @@
 2. 删除现有 Nginx 中所有 `Access-Control-Allow-Origin *`、`$http_origin` 回显和宽泛的 `Access-Control-Allow-Methods`；CORS 只由 Flask 的 `CORS_ORIGINS` 精确白名单处理。
 3. Gunicorn 只监听 `127.0.0.1:7001`。Redis 只监听回环地址。MySQL `6603` 不向非必要网段开放。
 4. UFW 默认拒绝入站，仅放行业务 HTTPS 端口和管理网段 SSH；不要在未验证新的 SSH 会话前关闭现有会话。
-5. 使用 `zhiwei-api.service.example` 将微信 API 改为 systemd 管理的 Gunicorn，并只绑定 `127.0.0.1:7001`；部署前确保 `uploads` 与 `logs` 是唯一需要写入的目录。
+5. 使用 `netops-platform-api.service.example` 将微信 API 改为 systemd 管理的 Gunicorn，并只绑定 `127.0.0.1:7001`；部署前确保 `uploads` 与 `logs` 是唯一需要写入的目录。
 
 ## 236
 

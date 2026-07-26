@@ -4,8 +4,8 @@
 - 名称：JSCN-233
 - SSH 用户：yvesyuan
 - SSH 端口：5333
-- API 入口：Nginx `/wx/api/`
-- 后端部署路径：`/home/yvesyuan/PycharmProjects/anbo_wx/backend`
+- API 入口：Nginx `/api/`
+- 后端部署路径：`/srv/netops/netops-littleProgram/backend`
 
 ## 数据库
 - MySQL 端口：6603
@@ -16,8 +16,8 @@
 ## 首次部署
 ```bash
 cd /home/yvesyuan/PycharmProjects
-git clone git@github.com:NJCATV/littleProgram.git anbo_wx
-cd anbo_wx/backend
+git clone git@github.com:NJCATV/netops-littleProgram.git /srv/netops/netops-littleProgram
+cd /srv/netops/netops-littleProgram/backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -33,7 +33,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 ## 数据库迁移
 ```bash
-cd /home/yvesyuan/PycharmProjects/anbo_wx/backend
+cd /srv/netops/netops-littleProgram/backend
 source .venv/bin/activate
 flask db init
 flask db migrate -m "task1 initial models"
@@ -82,7 +82,7 @@ curl http://127.0.0.1:7001/api/health
 
 Nginx 配置完成后：
 ```bash
-curl https://anbo.njcatv.net:5772/wx/api/health
+curl https://anbo.njcatv.net:5772/api/health
 ```
 
 ## 本地限制

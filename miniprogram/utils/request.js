@@ -1,4 +1,4 @@
-const DEFAULT_BASE_URL = 'https://anbo.njcatv.net:5772/wx/api'
+const DEFAULT_BASE_URL = 'https://anbo.njcatv.net:5772/api'
 
 function getBaseUrl() {
   const app = getApp()

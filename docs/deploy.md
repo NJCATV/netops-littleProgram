@@ -1,89 +1,52 @@
-# 部署文档
+# 233 部署说明
 
-## 服务器
-- 名称：JSCN-233
-- SSH 用户：yvesyuan
-- SSH 端口：5333
-- API 入口：Nginx `/api/`
-- 后端部署路径：`/srv/netops/netops-littleProgram/backend`
+## 运行位置
+
+| 项目 | 当前生产值 |
+| --- | --- |
+| 主机 | JSCN-233（`172.31.1.233`） |
+| SSH | `5333/tcp`，仅管理网段 |
+| 源码目录 | `/srv/netops/netops-littleProgram` |
+| 后端工作目录 | `/srv/netops/netops-littleProgram/backend` |
+| 服务单元 | `netops-platform-api.service` |
+| BFF 监听 | `127.0.0.1:7001` |
+| 浏览器入口 | `https://anbo.njcatv.net:5772/` |
+| API 前缀 | `/api/netops2026/` |
+
+运行时环境变量文件位于 `/etc/netops/netops-littleProgram.env`，权限为
+`root:www-data`、`0640`。该文件、虚拟环境、上传文件、日志、数据库导出及 OSS
+凭据均不得提交到 Git。
 
 ## 数据库
-- MySQL 端口：6603
-- MySQL 用户：anbo
-- 数据库：anbo_wx
-- 密码：写入服务器 `backend/.env`，不提交仓库。
 
-## 首次部署
+平台后端仍连接 233 本机 MySQL 的历史物理 schema `anbo_wx`。这是数据库兼容
+名称，不是部署目录、服务名或公开 API 名称；不要在新脚本和新 URL 中使用它。
+
+## 发布流程
+
+生产发布通过 `netops-ops/deploy/233/cutover-netops-names.sh` 管理。脚本会在
+`/var/backups/netops/` 创建 Nginx 和目标目录备份，随后同步以下仓库到
+`/srv/netops/`：
+
+1. `netops-littleProgram`：宿主 Flask 应用与数据库迁移；
+2. `netops-platform-api`：嵌入式 `netops2026` BFF 适配层；
+3. `netops-portal-web`：已构建的统一门户静态资源。
+
+脚本在切换前执行 `nginx -t`，启动 `netops-platform-api.service`，并以 TLS SNI
+验证新路由返回未登录状态 `401`、旧 `/wx/*` 路由返回 `410`。失败时自动恢复旧
+Nginx 和旧服务单元；不要手工覆盖生产目录绕过该流程。
+
+## 常用核验
+
 ```bash
-cd /home/yvesyuan/PycharmProjects
-git clone git@github.com:NJCATV/netops-littleProgram.git /srv/netops/netops-littleProgram
-cd /srv/netops/netops-littleProgram/backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
+systemctl is-active netops-platform-api.service
+systemctl is-enabled netops-platform-api.service
+curl -k --resolve anbo.njcatv.net:5772:127.0.0.1 \
+  -o /dev/null -w '%{http_code}\n' \
+  https://anbo.njcatv.net:5772/api/netops2026/auth/me
+curl -k --resolve anbo.njcatv.net:5772:127.0.0.1 \
+  -o /dev/null -w '%{http_code}\n' \
+  https://anbo.njcatv.net:5772/wx/api/health
 ```
 
-编辑 `.env`，填写真实 `DATABASE_URL`、`SECRET_KEY`、`JWT_SECRET_KEY`、`OSS_PASSWORD_SECRET_KEY`、默认超级管理员手机号和密码。
-
-生成 OSS 加密密钥：
-```bash
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-```
-
-## 数据库迁移
-```bash
-cd /srv/netops/netops-littleProgram/backend
-source .venv/bin/activate
-flask db init
-flask db migrate -m "task1 initial models"
-flask db upgrade
-python scripts/init_data.py
-```
-
-## 启动命令
-开发验证：
-```bash
-source .venv/bin/activate
-python run.py
-```
-
-当前 Task 1 临时启动状态：
-- 命令：`python run.py`
-- 监听：`0.0.0.0:7001`
-- 日志：`/tmp/anbo_wx_task1.log`
-- 后续正式部署建议改为 Gunicorn + systemd。
-
-Gunicorn：
-```bash
-source .venv/bin/activate
-mkdir -p logs
-gunicorn -w 2 -b 127.0.0.1:7001 wsgi:app --access-logfile logs/access.log --error-logfile logs/error.log
-```
-
-## 停止命令
-临时 Gunicorn 进程：
-```bash
-pkill -f "gunicorn.*wsgi:app"
-```
-
-systemd 方式待创建服务文件后补充。
-
-## 查看日志
-```bash
-tail -f logs/access.log
-tail -f logs/error.log
-```
-
-## 健康检查
-```bash
-curl http://127.0.0.1:7001/api/health
-```
-
-Nginx 配置完成后：
-```bash
-curl https://anbo.njcatv.net:5772/api/health
-```
-
-## 本地限制
-按当前协作要求，本地不创建 Python 虚拟环境、不安装后端依赖；后端部署、迁移、初始化和测试均在 JSCN-233 服务器执行。
+预期依次为服务 `active`、`enabled`、新 API `401`、旧路径 `410`。

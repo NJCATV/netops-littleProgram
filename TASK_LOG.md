@@ -9,6 +9,8 @@
 - 新增移动平台兼容 Blueprint，补齐 `/api/netops2026/auth/bind-oss`、`/auth/logout`、`/files/avatar` 和头像读取接口。
 - 保留原 `/api/auth`、`/api/files` 和 `/api/workbench` 后端路由，供内部兼容使用；小程序不再调用这些旧公开路径。
 - 本地验证：`python -m compileall backend/app` 通过；Flask URL Map 包含新增移动接口；`npm.cmd run build:mp-weixin` 通过；构建产物未发现双重 `/netops2026` 或 `/workbench/apps` 残留。
+- 生产发布：JSCN-233 运行目录快进到 `65bfdaf`，保留线上 `netops2026.py` 的 Radius 优化和备份文件；编译通过后向 Gunicorn 主进程发送 HUP 优雅重载，`netops-platform-api` 保持 `active`。
+- 公网回归：登录、当前用户、动态菜单、菜单/组织/用户/服务器/日志管理、网管总览和 AIOps 均返回 200；Radius 缺少必填关键词时按设计返回 400；OSS 绑定和头像上传未携带 token 时返回 401，确认新路由已生效。
 
 ## 2026-07-31 - 网管 Web 高频能力接入小程序
 

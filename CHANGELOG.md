@@ -12,6 +12,11 @@
 - 小程序认证、菜单、头像、OSS、系统管理、网管、Radius 和 AIOps 请求统一使用 `/api/netops2026` 公开命名空间。
 - 动态菜单改用 `/api/netops2026/navigation`；管理接口改用 `/api/netops2026/admin/*`。
 
+### Verification
+
+- JSCN-233 已部署并优雅重载；登录、当前用户、动态菜单、管理查询、网管总览和 AIOps 公网接口回归通过。
+- Radius 无关键词请求按设计返回 400；OSS 绑定和头像上传匿名请求返回 401，确认新路由已生效。
+
 ### Added
 
 - 新增小程序 Radius 一键诊断页，支持账号/MAC 用户画像、认证/流量/会话诊断、ONU 一致性和 FTTH ONU 联查。

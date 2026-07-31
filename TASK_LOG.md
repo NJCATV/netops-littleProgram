@@ -3,7 +3,7 @@
 ## 2026-07-31 - 小程序接口统一迁移到新网管命名空间
 
 - 定位真机登录后 404：`POST /api/auth/login` 成功，但 `/api/auth/me`、`/api/workbench/apps` 和 `/api/admin/*` 被保留版 2025 Web 的通用 `/api/` 代理转发到旧服务 `7003`。
-- 将 uni-app 默认 API 基址统一为 `https://anbo.njcatv.net:5772/api/netops2026`；历史缓存中的 `/api`、`/wx/api` 基址会自动迁移到新前缀。
+- 将 uni-app 默认 API 基址统一为 `https://anbo.njcatv.net:5772/api/netops2026`；历史缓存中的 `/api`、`/wx/api` 前缀和 `172.31.1.233:5772/7001` 内网地址会自动迁移到微信后台已配置的正式域名。
 - 网管、Radius、AIOps API 改为相对新基址调用，避免重复拼接 `/netops2026`；动态菜单切换到 `GET /api/netops2026/navigation`。
 - 管理接口统一形成 `/api/netops2026/admin/*`，继续使用现有 Nginx 管理接口代理，不与旧 `/api/admin/*` 冲突。
 - 新增移动平台兼容 Blueprint，补齐 `/api/netops2026/auth/bind-oss`、`/auth/logout`、`/files/avatar` 和头像读取接口。

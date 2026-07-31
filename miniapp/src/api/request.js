@@ -1,11 +1,16 @@
 const API_NAMESPACE = '/api/netops2026'
-const DEFAULT_BASE_URL = `https://anbo.njcatv.net:5772${API_NAMESPACE}`
+const CANONICAL_ORIGIN = 'https://anbo.njcatv.net:5772'
+const DEFAULT_BASE_URL = `${CANONICAL_ORIGIN}${API_NAMESPACE}`
 
 function normalizeBaseUrl(baseUrl) {
-  const normalized = String(baseUrl || '').trim().replace(/\/+$/, '')
+  let normalized = String(baseUrl || '').trim().replace(/\/+$/, '')
   if (!normalized) {
     return DEFAULT_BASE_URL
   }
+  normalized = normalized.replace(
+    /^https?:\/\/172\.31\.1\.233(?::(?:5772|7001))?/i,
+    CANONICAL_ORIGIN
+  )
   if (/\/wx\/api$/i.test(normalized)) {
     return normalized.replace(/\/wx\/api$/i, API_NAMESPACE)
   }

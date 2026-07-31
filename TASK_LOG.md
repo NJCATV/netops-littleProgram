@@ -1,5 +1,15 @@
 # TASK_LOG
 
+## 2026-07-31 - 小程序接口统一迁移到新网管命名空间
+
+- 定位真机登录后 404：`POST /api/auth/login` 成功，但 `/api/auth/me`、`/api/workbench/apps` 和 `/api/admin/*` 被保留版 2025 Web 的通用 `/api/` 代理转发到旧服务 `7003`。
+- 将 uni-app 默认 API 基址统一为 `https://anbo.njcatv.net:5772/api/netops2026`；历史缓存中的 `/api`、`/wx/api` 基址会自动迁移到新前缀。
+- 网管、Radius、AIOps API 改为相对新基址调用，避免重复拼接 `/netops2026`；动态菜单切换到 `GET /api/netops2026/navigation`。
+- 管理接口统一形成 `/api/netops2026/admin/*`，继续使用现有 Nginx 管理接口代理，不与旧 `/api/admin/*` 冲突。
+- 新增移动平台兼容 Blueprint，补齐 `/api/netops2026/auth/bind-oss`、`/auth/logout`、`/files/avatar` 和头像读取接口。
+- 保留原 `/api/auth`、`/api/files` 和 `/api/workbench` 后端路由，供内部兼容使用；小程序不再调用这些旧公开路径。
+- 本地验证：`python -m compileall backend/app` 通过；Flask URL Map 包含新增移动接口；`npm.cmd run build:mp-weixin` 通过；构建产物未发现双重 `/netops2026` 或 `/workbench/apps` 残留。
+
 ## 2026-07-31 - 网管 Web 高频能力接入小程序
 
 - 对照 `netops-portal-web` 当前页面与 `miniapp/` 既有网管页面，确认原小程序已覆盖 ONU、CM、质差、性能、采集、设备、BOSS 和配置，新增缺口集中在 Radius、AIOps 和 AI 问答。

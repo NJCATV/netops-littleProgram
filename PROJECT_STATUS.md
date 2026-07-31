@@ -51,21 +51,21 @@ OSS 工单必须纳入统一工单池。OSS 查询可以保留原始能力，但
 - 服务器设备信息管理：已完成模块设计，计划作为运维资产台账和快速查询入口。
 
 ### 当前已完成接口
-- `GET /api/health`
-- `POST /api/files/avatar`
-- `GET /api/files/avatars/{filename}`
-- `POST /api/auth/login`
-- `GET /api/auth/me`
-- `POST /api/auth/bind-oss`
-- `POST /api/auth/change-password`
-- `POST /api/auth/logout`
-- `GET /api/workbench/apps`
-- `GET/POST/PUT /api/admin/orgs`
-- `GET/POST/PUT /api/admin/menus`
-- `GET/POST/PUT /api/admin/users`
-- `POST /api/admin/users/{id}/enable`
-- `POST /api/admin/users/{id}/disable`
-- `POST /api/admin/users/{id}/reset-password`
+- 小程序公开接口统一使用 `/api/netops2026` 前缀，旧 `/api/*` 仅供保留中的 2025 Web 和后端内部兼容使用。
+- `POST /api/netops2026/auth/login`
+- `GET /api/netops2026/auth/me`
+- `POST /api/netops2026/auth/bind-oss`
+- `POST /api/netops2026/auth/change-password`
+- `POST /api/netops2026/auth/logout`
+- `GET /api/netops2026/navigation`
+- `POST /api/netops2026/files/avatar`
+- `GET /api/netops2026/files/avatars/{filename}`
+- `GET/POST/PUT /api/netops2026/admin/orgs`
+- `GET/POST/PUT /api/netops2026/admin/menus`
+- `GET/POST/PUT /api/netops2026/admin/users`
+- `POST /api/netops2026/admin/users/{id}/enable`
+- `POST /api/netops2026/admin/users/{id}/disable`
+- `POST /api/netops2026/admin/users/{id}/reset-password`
 
 ### 当前能运行的功能
 - 网管平台移动端：复用已部署 `/api/netops2026`，支持 ONU/CM 查询、实时光功率、Radius 一键诊断、AIOps 研判、AI 运维问答、质差筛选和导出、OLT 性能、采集状态/任务/历史、OLT/CMTS 设备维护、BOSS 用户查询/导入、设备组织与告警规则。
@@ -74,7 +74,7 @@ OSS 工单必须纳入统一工单池。OSS 查询可以保留原始能力，但
 - uni-app 用户管理基础页面：已接入现有后端接口。
 - 组织管理基础接口：已补齐 uni-app 页面所需查询、新增、编辑、启用、禁用。
 - 菜单管理基础接口：已接入 uni-app 页面，支持查询、新增、编辑、启用、禁用。
-- uni-app 动态菜单：已接入现有 `GET /api/workbench/apps`。
+- uni-app 动态菜单：已接入新网管 `GET /api/netops2026/navigation`。
 - 水印相机：可用。
 - IP 计算器：可用。
 - 安全基线：新密码使用 scrypt 且至少 12 位，登录失败限流，JWT 默认 8 小时，生产密钥强校验，CORS 白名单和 API `no-store` 已写入代码。
@@ -95,7 +95,7 @@ OSS 工单必须纳入统一工单池。OSS 查询可以保留原始能力，但
 - 权限体系需要升级为角色、权限、菜单的统一模型。
 
 ### 当前是否已有 OSS 逻辑
-- 已有 OSS 登录/校验服务和参考代码，当前后端 `POST /api/auth/bind-oss` 会按旧项目已调通格式调用 OSS `/login` 做绑定校验。
+- 已有 OSS 登录/校验服务和参考代码，当前后端 `POST /api/netops2026/auth/bind-oss` 会按旧项目已调通格式调用 OSS `/login` 做绑定校验。
 - 已有 OSS 账号绑定页面，绑定为非强制行为；未绑定、待确认或校验失败时允许进入系统，小程序每次重新打开后提醒一次，可稍后在“我的”页面绑定。绑定成功默认不覆盖小程序密码，用户勾选“使用 OSS 密码作为小程序登录密码”后才覆盖。
 - 已有 `docs/oss-reference/` 中的 OSS 接口参考。
 - 尚未完成 OSS 工单查询页面。

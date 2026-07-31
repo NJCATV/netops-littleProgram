@@ -34,6 +34,7 @@ def create_app(config_class=Config):
     from .routes.auth import auth_bp
     from .routes.files import files_bp
     from .routes.health import health_bp
+    from .routes.mobile_platform import mobile_platform_bp
     from .routes.netops2026 import netops2026_bp
     from .routes.workbench import workbench_bp
 
@@ -45,6 +46,7 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp)
     app.register_blueprint(files_bp)
     app.register_blueprint(health_bp)
+    app.register_blueprint(mobile_platform_bp)
     app.register_blueprint(netops2026_bp)
     app.register_blueprint(workbench_bp)
 

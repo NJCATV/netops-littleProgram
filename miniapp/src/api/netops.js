@@ -1,6 +1,6 @@
 import { getBaseUrl, request, toQuery } from './request'
 
-const prefix = '/netops2026'
+const prefix = ''
 
 function get(path, params, header) {
   return request({ url: `${prefix}${path}${toQuery(params)}`, header })

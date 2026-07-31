@@ -9,10 +9,12 @@
 
 ## 二、认证与当前用户
 
-### POST /api/auth/login
+> 小程序公开接口统一使用 `/api/netops2026` 命名空间。旧 `/api/*` 路由只作为后端内部兼容或 2025 Web 过渡接口，不再作为小程序调用契约。
+
+### POST /api/netops2026/auth/login
 登录接口，支持手机号、用户名或 OSS 账号映射登录。
 
-### GET /api/auth/me
+### GET /api/netops2026/auth/me
 返回当前用户、角色、权限、菜单摘要和下一步动作。
 
 `next_action` 当前只用于强制首次修改初始密码：
@@ -24,13 +26,13 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 客户端登录体验：
 - 登录成功后保存上次登录账号，用于下次打开登录页自动填入。
 - 客户端不保存明文密码。
-- 已有有效 token 时，登录页通过 `GET /api/auth/me` 校验并自动进入系统。
+- 已有有效 token 时，登录页通过 `GET /api/netops2026/auth/me` 校验并自动进入系统。
 - 用户在“我的”页面退出登录后清理 token 和当前用户缓存。
 
-### POST /api/auth/change-password
+### POST /api/netops2026/auth/change-password
 修改当前用户密码。
 
-### POST /api/auth/logout
+### POST /api/netops2026/auth/logout
 退出登录，客户端清理 token；后续如引入 token 黑名单，再由后端吊销。
 
 ## 三、菜单接口
@@ -45,7 +47,7 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 
 ## 四、用户管理接口
 
-### GET /api/admin/users
+### GET /api/netops2026/admin/users
 用户列表。
 
 筛选参数：
@@ -58,60 +60,60 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 - `page`
 - `page_size`
 
-### GET /api/admin/users/options
+### GET /api/netops2026/admin/users/options
 返回组织、角色、状态、用户类型、OSS 绑定状态等选项。
 
-### POST /api/admin/users
+### POST /api/netops2026/admin/users
 新增用户。
 
-### PUT /api/admin/users/{id}
+### PUT /api/netops2026/admin/users/{id}
 编辑用户。
 
-### POST /api/admin/users/{id}/enable
+### POST /api/netops2026/admin/users/{id}/enable
 启用用户。
 
-### POST /api/admin/users/{id}/disable
+### POST /api/netops2026/admin/users/{id}/disable
 禁用用户。
 
-### POST /api/admin/users/{id}/reset-password
+### POST /api/netops2026/admin/users/{id}/reset-password
 重置用户密码。
 
 ## 五、组织与菜单管理接口
 
-### GET /api/admin/orgs
+### GET /api/netops2026/admin/orgs
 返回组织列表和组织树。
 
-### GET /api/admin/orgs/tree
+### GET /api/netops2026/admin/orgs/tree
 返回组织列表和组织树。
 
-### POST /api/admin/orgs
+### POST /api/netops2026/admin/orgs
 新增组织。
 
-### PUT /api/admin/orgs/{id}
+### PUT /api/netops2026/admin/orgs/{id}
 编辑组织。
 
-### POST /api/admin/orgs/{id}/enable
+### POST /api/netops2026/admin/orgs/{id}/enable
 启用组织。
 
-### POST /api/admin/orgs/{id}/disable
+### POST /api/netops2026/admin/orgs/{id}/disable
 禁用组织。
 
-### DELETE /api/admin/orgs/{id}
+### DELETE /api/netops2026/admin/orgs/{id}
 删除组织及其所有下级组织。删除前会清空相关用户的所属组织和管理组织字段，避免外键约束阻塞。
 
-### GET /api/admin/menus
+### GET /api/netops2026/admin/menus
 返回功能菜单列表。
 
-### POST /api/admin/menus
+### POST /api/netops2026/admin/menus
 新增功能菜单。
 
-### PUT /api/admin/menus/{id}
+### PUT /api/netops2026/admin/menus/{id}
 编辑功能菜单。
 
-### POST /api/admin/menus/{id}/enable
+### POST /api/netops2026/admin/menus/{id}/enable
 启用功能菜单。
 
-### POST /api/admin/menus/{id}/disable
+### POST /api/netops2026/admin/menus/{id}/disable
 禁用功能菜单。
 
 ## 六、服务器管理接口
@@ -124,7 +126,7 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 - 被共享用户可以查看服务器和资料明文，但不能编辑服务器或资料。
 - 超级管理员可以查看全部服务器。
 
-### GET /api/admin/servers
+### GET /api/netops2026/admin/servers
 查看当前用户可见的服务器清单。
 
 查询参数：
@@ -136,7 +138,7 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 返回字段补充：
 - `groups`：当前用户可见的分组列表，用于首页分组筛选。
 
-### POST /api/admin/servers
+### POST /api/netops2026/admin/servers
 新增服务器资产。
 
 请求字段：
@@ -162,22 +164,22 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 - `share_user_ids`：可见用户 ID 数组。
 - `group_share_user_ids`：分组共享用户 ID 数组；被共享用户可查看该分组下的服务器并参与搜索。
 
-### PUT /api/admin/servers/{id}
+### PUT /api/netops2026/admin/servers/{id}
 编辑服务器资产。
 
-### GET /api/admin/servers/share-options
+### GET /api/netops2026/admin/servers/share-options
 返回可选共享用户列表和当前用户可见分组列表，用于前端复选选择可见用户和维护分组共享。
 
-### POST /api/admin/servers/{id}/status
+### POST /api/netops2026/admin/servers/{id}/status
 更新服务器状态。
 
 请求字段：
 - `status`：`active`、`maintenance`、`offline`。
 
-### GET /api/admin/servers/{id}/credentials
+### GET /api/netops2026/admin/servers/{id}/credentials
 查看服务器资料列表。列表只返回资料元数据、是否已保存密文和可复制命令，不返回明文密码。
 
-### POST /api/admin/servers/{id}/credentials
+### POST /api/netops2026/admin/servers/{id}/credentials
 新增服务器资料。
 
 请求字段：
@@ -191,18 +193,18 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 - `command`：自定义命令；为空时后端生成安全命令。
 - `remark`
 
-### PUT /api/admin/servers/credentials/{id}
+### PUT /api/netops2026/admin/servers/credentials/{id}
 编辑服务器资料。`secret` 留空表示清空；不传 `secret` 表示不修改密文。
 
-### DELETE /api/admin/servers/credentials/{id}
+### DELETE /api/netops2026/admin/servers/credentials/{id}
 删除服务器资料。
 
-### POST /api/admin/servers/credentials/{id}/reveal
+### POST /api/netops2026/admin/servers/credentials/{id}/reveal
 查看并返回资料明文。该接口必须写入操作日志。
 
 ## 七、后台日志接口
 
-### GET /api/admin/logs
+### GET /api/netops2026/admin/logs
 超级管理员查看后台日志。
 
 查询参数：
@@ -282,10 +284,10 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 ### POST /api/files/upload
 文件上传接口，支持现场照片、水印照片和附件。
 
-### POST /api/files/avatar
+### POST /api/netops2026/files/avatar
 上传当前用户头像。请求为 `multipart/form-data`，文件字段名为 `avatar`，支持 JPG、PNG、WebP，默认最大 2MB。成功后更新当前用户 `avatar_url` 并返回最新用户信息。
 
-### GET /api/files/avatars/{filename}
+### GET /api/netops2026/files/avatars/{filename}
 读取用户头像文件。
 
 ### POST /api/work-orders/{id}/photos
@@ -307,7 +309,7 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 
 当前已实现接口：
 
-### POST /api/auth/bind-oss
+### POST /api/netops2026/auth/bind-oss
 校验并绑定当前用户 OSS 账号。该接口调用正式 OSS `/login` 进行账号密码校验，成功后加密保存 OSS 密码并更新绑定状态。绑定失败不会阻断用户进入小程序。
 
 请求字段：

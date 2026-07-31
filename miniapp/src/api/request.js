@@ -1,12 +1,32 @@
-const DEFAULT_BASE_URL = 'https://anbo.njcatv.net:5772/api'
+const API_NAMESPACE = '/api/netops2026'
+const DEFAULT_BASE_URL = `https://anbo.njcatv.net:5772${API_NAMESPACE}`
+
+function normalizeBaseUrl(baseUrl) {
+  const normalized = String(baseUrl || '').trim().replace(/\/+$/, '')
+  if (!normalized) {
+    return DEFAULT_BASE_URL
+  }
+  if (/\/wx\/api$/i.test(normalized)) {
+    return normalized.replace(/\/wx\/api$/i, API_NAMESPACE)
+  }
+  if (/\/api$/i.test(normalized)) {
+    return `${normalized}/netops2026`
+  }
+  return normalized
+}
 
 export function getBaseUrl() {
-  return uni.getStorageSync('api_base_url') || DEFAULT_BASE_URL
+  const storedBaseUrl = uni.getStorageSync('api_base_url')
+  const baseUrl = normalizeBaseUrl(storedBaseUrl)
+  if (storedBaseUrl && storedBaseUrl !== baseUrl) {
+    uni.setStorageSync('api_base_url', baseUrl)
+  }
+  return baseUrl
 }
 
 export function setBaseUrl(baseUrl) {
   if (baseUrl) {
-    uni.setStorageSync('api_base_url', baseUrl.replace(/\/$/, ''))
+    uni.setStorageSync('api_base_url', normalizeBaseUrl(baseUrl))
   }
 }
 

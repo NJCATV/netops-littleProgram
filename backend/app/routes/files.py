@@ -29,6 +29,10 @@ MIME_EXTENSION_MAP = {
 @files_bp.post("/avatar")
 @login_required
 def upload_avatar():
+    return upload_avatar_response()
+
+
+def upload_avatar_response():
     file = request.files.get("avatar")
     if file is None or not file.filename:
         return fail(BAD_REQUEST, "avatar file is required")
@@ -67,6 +71,10 @@ def upload_avatar():
 
 @files_bp.get("/avatars/<path:filename>")
 def avatar_file(filename):
+    return avatar_file_response(filename)
+
+
+def avatar_file_response(filename):
     avatar_dir = Path(current_app.config["UPLOAD_DIR"]) / "avatars"
     return send_from_directory(avatar_dir, filename)
 

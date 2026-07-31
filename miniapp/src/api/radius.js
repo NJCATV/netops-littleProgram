@@ -1,6 +1,6 @@
 import { request, toQuery } from './request'
 
-const prefix = '/netops2026/radius'
+const prefix = '/radius'
 
 function get(path, params) {
   return request({ url: `${prefix}${path}${toQuery(params)}` })

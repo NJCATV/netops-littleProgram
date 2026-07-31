@@ -490,6 +490,10 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 - `/boss/users`、`/boss/users/import`：BOSS 用户查询和 Excel 增量导入。
 - `/device-orgs`、`/organization-mappings`：设备组织和用户组织区域映射。
 - `/settings`、`/settings/quality/onu-rx-rule`、`/settings/performance/olt-rule`：告警规则。
+- `/radius/profile`：按账号或终端 MAC 生成 Radius 用户画像，包含认证、会话、流量、问题线索和 ONU 一致性核验。
+- `/aiops/ai-runs`、`/aiops/ai-runs/{run_uid}`：AIOps 分析历史和单次分析报告。
+- `/aiops/runtime/overview`、`/aiops/runtime/freshness`：AIOps 来源数据量和数据新鲜度。
+- `/aiops/fault-kb/chat`、`/aiops/fault-kb/chat/sessions`：AI 运维问答和个人历史会话。
 
 移动端页面映射见 `docs/NETOPS_MINIAPP_MODULE_MAPPING.md`。
 

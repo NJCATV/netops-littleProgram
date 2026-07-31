@@ -1,5 +1,18 @@
 # TASK_LOG
 
+## 2026-07-31 - 网管 Web 高频能力接入小程序
+
+- 对照 `netops-portal-web` 当前页面与 `miniapp/` 既有网管页面，确认原小程序已覆盖 ONU、CM、质差、性能、采集、设备、BOSS 和配置，新增缺口集中在 Radius、AIOps 和 AI 问答。
+- 按移动作业场景接入三项能力：
+  - Radius 一键诊断：账号/MAC 查询、认证成功率、24 小时/30 天流量、会话、问题线索、ONU 一致性和 ONU 联查。
+  - AIOps 移动看板：最新/历史报告、必须处理/关注/恢复/降噪等分类、证据、建议动作、来源数据量和新鲜度。
+  - AI 运维助手：知识与 AIOps 问答、建议问题、历史会话恢复和删除。
+- 工作台兼容 Web 路径 `/radius`、`/radius/search`、`/aiops`、`/aiops/board`、`/ai-assistant`，并按移动页面路径去重。
+- 初始化菜单增加 `netops.radius`、`netops.aiops`、`netops.ai_assistant`，继续由后端角色和菜单状态控制可见性。
+- 明确不迁移认证明细大表、完整报表、模型/规则/任务/审计、知识库管理和基础设施拓扑，避免把后台管理页面照搬到手机端。
+- 修改文件：`miniapp/src/api/aiops.js`、`miniapp/src/api/radius.js`、`miniapp/src/pages/netops/{radius,aiops,ai-assistant}/index.vue`、`miniapp/src/pages.json`、`miniapp/src/pages/workbench/index.vue`、`miniapp/src/utils/labels.js`、`backend/scripts/init_data.py` 及项目文档。
+- 验证：`npm.cmd run build:mp-weixin` 通过；`python -m compileall backend/app backend/scripts/init_data.py` 通过；`git diff --check` 通过；H5 以 390×844 手机视口检查三个新增页面，首屏、空状态、输入区和滚动布局正常，控制台无 error/warn。
+
 ## 2026-07-28 - 驾驶舱与 Radius 即开即用、流量核验
 
 - 以 JSCN-233 当前正在提供服务的 `netops2026.py` 为最新基线，回收此前仅在线上的驾驶舱及 Radius 页面级快照、后台刷新和 SQL 短缓存实现。

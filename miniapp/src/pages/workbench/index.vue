@@ -50,6 +50,11 @@ const routeMap = {
   '/hfc': '/pages/netops/hfc/index',
   '/cm-search': '/pages/netops/hfc/index',
   '/cmts-devices': '/pages/netops/hfc/index',
+  '/radius': '/pages/netops/radius/index',
+  '/radius/search': '/pages/netops/radius/index',
+  '/aiops': '/pages/netops/aiops/index',
+  '/aiops/board': '/pages/netops/aiops/index',
+  '/ai-assistant': '/pages/netops/ai-assistant/index',
   '/boss-users': '/pages/netops/boss-users/index',
   '/settings': '/pages/netops/admin/index',
   '/device-orgs': '/pages/netops/admin/index',
@@ -68,6 +73,9 @@ const keyMap = {
   'netops.devices': '/pages/netops/devices/index',
   'netops.hfc': '/pages/netops/hfc/index',
   'netops.cmts_devices': '/pages/netops/hfc/index',
+  'netops.radius': '/pages/netops/radius/index',
+  'netops.aiops': '/pages/netops/aiops/index',
+  'netops.ai_assistant': '/pages/netops/ai-assistant/index',
   'netops.boss-users': '/pages/netops/boss-users/index',
   'netops.boss_users': '/pages/netops/boss-users/index',
   'netops.admin': '/pages/netops/admin/index'
@@ -79,7 +87,10 @@ const nameMap = {
   'ONU质差管理': '/pages/netops/quality/index', 'OLT性能看板': '/pages/netops/performance/index',
   '采集监控': '/pages/netops/collector/index', 'OLT设备管理': '/pages/netops/devices/index',
   'CMCMTS查询': '/pages/netops/hfc/index', 'CMMAC查询': '/pages/netops/hfc/index',
-  'CMTS设备管理': '/pages/netops/hfc/index', 'BOSS用户管理': '/pages/netops/boss-users/index',
+  'CMTS设备管理': '/pages/netops/hfc/index', 'Radius管理系统': '/pages/netops/radius/index',
+  'Radius一键查询': '/pages/netops/radius/index', 'AIOps运维看板': '/pages/netops/aiops/index',
+  'AIOps运维中心': '/pages/netops/aiops/index', 'AI问答': '/pages/netops/ai-assistant/index',
+  'AI运维助手': '/pages/netops/ai-assistant/index', 'BOSS用户管理': '/pages/netops/boss-users/index',
   '设备组织管理': '/pages/netops/admin/index', '网管配置': '/pages/netops/admin/index',
   '系统配置': '/pages/netops/admin/index', '权限管理': '/pages/admin/menus/index',
   '用户管理': '/pages/admin/users/index', '用户组织管理': '/pages/admin/orgs/index'
@@ -89,12 +100,15 @@ const routeIcon = {
   '/pages/netops/dashboard/index': 'dashboard', '/pages/netops/onu/index': 'onu',
   '/pages/netops/quality/index': 'quality', '/pages/netops/performance/index': 'performance',
   '/pages/netops/collector/index': 'collector', '/pages/netops/devices/index': 'devices',
-  '/pages/netops/hfc/index': 'hfc', '/pages/netops/boss-users/index': 'boss',
+  '/pages/netops/hfc/index': 'hfc', '/pages/netops/radius/index': 'radius',
+  '/pages/netops/aiops/index': 'aiops', '/pages/netops/ai-assistant/index': 'assistant',
+  '/pages/netops/boss-users/index': 'boss',
   '/pages/netops/admin/index': 'admin'
 }
 
 const netopsOrder = [
-  '/pages/netops/onu/index', '/pages/netops/hfc/index', '/pages/netops/dashboard/index',
+  '/pages/netops/onu/index', '/pages/netops/hfc/index', '/pages/netops/radius/index',
+  '/pages/netops/dashboard/index', '/pages/netops/aiops/index', '/pages/netops/ai-assistant/index',
   '/pages/netops/quality/index', '/pages/netops/performance/index', '/pages/netops/collector/index',
   '/pages/netops/devices/index', '/pages/netops/boss-users/index', '/pages/netops/admin/index'
 ]
@@ -102,6 +116,8 @@ const convenienceKeys = new Set(['watermark.camera', 'ip.calculator', 'duty.view
 const nameOverrides = {
   '/pages/netops/onu/index': 'ONU 查询', '/pages/netops/hfc/index': 'CM / CMTS 查询',
   '/pages/netops/dashboard/index': '网络总览', '/pages/netops/quality/index': '质差管理',
+  '/pages/netops/radius/index': 'Radius 诊断', '/pages/netops/aiops/index': 'AIOps 看板',
+  '/pages/netops/ai-assistant/index': 'AI 运维助手',
   '/pages/netops/performance/index': 'OLT 性能', '/pages/netops/collector/index': '采集监控',
   '/pages/netops/devices/index': 'OLT 设备', '/pages/netops/boss-users/index': 'BOSS 用户',
   '/pages/netops/admin/index': '网管配置'
@@ -109,6 +125,7 @@ const nameOverrides = {
 
 const iconLabels = {
   dashboard: '览', onu: '光', quality: '质', performance: '性', collector: '采',
+  radius: '拨', aiops: '智', assistant: '问',
   devices: '网', hfc: '缆', boss: '客', admin: '设', camera: '拍', calculator: '算',
   search: '查', calendar: '班', 'folder-search': '档', usergroup: '人', tree: '组',
   app: '菜', log: '志', server: '服', setting: '设', default: '用'
@@ -224,6 +241,6 @@ function go(item) {
 .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16rpx 10rpx; }
 .entry { min-width: 0; padding: 12rpx 3rpx 8rpx; border-radius: 14rpx; background: #f8fafc; text-align: center; }
 .entry-icon { display: flex; align-items: center; justify-content: center; width: 68rpx; height: 68rpx; margin: 0 auto; border-radius: 18rpx; background: #2d6fbd; color: #fff; font-size: 27rpx; font-weight: 700; }
-.icon-quality, .icon-collector { background: #c37720; }.icon-hfc, .icon-boss { background: #6e58c8; }.icon-camera, .icon-search { background: #16845f; }.icon-calculator, .icon-folder-search { background: #6b55d9; }.icon-usergroup, .icon-tree, .icon-app, .icon-log, .icon-server, .icon-setting, .icon-admin { background: #b45f06; }
+.icon-quality, .icon-collector { background: #c37720; }.icon-hfc, .icon-boss { background: #6e58c8; }.icon-radius { background:#167b78; }.icon-aiops,.icon-assistant { background:#6957c7; }.icon-camera, .icon-search { background: #16845f; }.icon-calculator, .icon-folder-search { background: #6b55d9; }.icon-usergroup, .icon-tree, .icon-app, .icon-log, .icon-server, .icon-setting, .icon-admin { background: #b45f06; }
 .entry-name { overflow: hidden; margin-top: 9rpx; color: #2b3642; font-size: 22rpx; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
 </style>

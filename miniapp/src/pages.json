@@ -122,6 +122,25 @@
       }
     },
     {
+      "path": "pages/netops/radius/index",
+      "style": {
+        "navigationBarTitleText": "Radius 一键诊断"
+      }
+    },
+    {
+      "path": "pages/netops/aiops/index",
+      "style": {
+        "navigationBarTitleText": "AIOps 运维看板",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/netops/ai-assistant/index",
+      "style": {
+        "navigationBarTitleText": "AI 运维助手"
+      }
+    },
+    {
       "path": "pages/netops/boss-users/index",
       "style": {
         "navigationBarTitleText": "BOSS 用户"

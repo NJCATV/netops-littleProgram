@@ -85,7 +85,8 @@ const MESSAGE_LABELS = {
   'min_role is invalid': '最小角色无效',
   'user_type is invalid': '用户类型无效',
   'sort_order is invalid': '排序必须是数字',
-  'network request:fail': '网络请求失败'
+  'network request:fail': '网络请求失败',
+  'request:fail': '网络请求失败'
 }
 
 export function roleLabel(value) {

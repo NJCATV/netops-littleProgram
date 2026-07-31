@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 2026-07-31
+
+### Added
+
+- 新增小程序 Radius 一键诊断页，支持账号/MAC 用户画像、认证/流量/会话诊断、ONU 一致性和 FTTH ONU 联查。
+- 新增小程序 AIOps 运维看板，支持最新与历史 AI 报告、分类结论、关键证据和处置建议。
+- 新增小程序 AI 运维助手，支持故障问答、建议问题和个人历史会话。
+- 新增 Radius 与 AIOps 小程序 API 封装及三项动态菜单初始化配置。
+
+### Changed
+
+- 工作台兼容 Web 的 Radius、AIOps 和 AI 问答路径，并将多个 Web 子入口按对应移动页面去重。
+- 网管移动端映射文档补充手机端范围取舍，复杂报表和后台配置继续保留在 Web。
+- 小程序网络失败提示补充 `request:fail` 中文映射。
+
+### Verification
+
+- `miniapp/` 执行 `npm.cmd run build:mp-weixin` 通过。
+- 执行 `python -m compileall backend/app backend/scripts/init_data.py` 通过。
+- `git diff --check` 通过。
+- H5 以 390×844 手机视口检查三个新增页面，控制台无 error/warn。
+
 ## 2026-07-28
 
 ### Added

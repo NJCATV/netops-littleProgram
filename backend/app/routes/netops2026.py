@@ -107,6 +107,18 @@ def ensure_usage_audit_schema():
         WHERE event_kind='technical'
         """
     )
+    execute_write(
+        """
+        UPDATE netops2026_usage_audit_log
+        SET event_kind='technical_error', trigger_source='anonymous_rejected'
+        WHERE event_kind='security'
+          AND status_code IN (401,403)
+          AND user_id IS NULL
+          AND COALESCE(username,'')=''
+          AND action NOT IN ('login','change_password')
+          AND request_path<>'/boss/access'
+        """
+    )
     _USAGE_AUDIT_SCHEMA_READY = True
 
 
@@ -346,6 +358,7 @@ def record_platform_usage(response):
             return response
         status_code = int(response.status_code)
         search_content = audit_search_content()
+        actor = audit_actor()
         event_kind = None
         trigger_source = None
         action = audit_action_for_request(relative_path, request.method)
@@ -359,6 +372,11 @@ def record_platform_usage(response):
             event_kind = "security"
             trigger_source = "explicit"
         elif status_code in (401, 403):
+            # An expired/missing token can make every dashboard refresh fail at
+            # once. Those anonymous rejects belong in access logs, not in the
+            # user-behavior audit. Authenticated permission denials are retained.
+            if actor["user_id"] is None and not actor["username"]:
+                return response
             event_kind = "security"
             trigger_source = "request"
         elif status_code >= 400:
@@ -379,7 +397,6 @@ def record_platform_usage(response):
         started_at = getattr(g, "netops2026_audit_started_at", None)
         duration_ms = int((time.monotonic() - started_at) * 1000) if started_at else None
         result = "success" if status_code < 400 else ("denied" if status_code in (401, 403) else "failed")
-        actor = audit_actor()
         ensure_usage_audit_schema()
         execute_write(
             """
@@ -1895,6 +1912,7 @@ def system_audit_route():
         "occurred_at >= DATE_SUB(NOW(), INTERVAL %s HOUR)",
         "request_path<>%s",
         "event_kind IN ('page_view','user_action','security')",
+        "NOT (event_kind='security' AND status_code IN (401,403) AND user_id IS NULL AND COALESCE(username,'')='' AND action NOT IN ('login','change_password') AND request_path<>'/boss/access')",
     ]
     args = [hours, "/__system_audit_backfill__"]
     if module:

@@ -26,47 +26,35 @@ def upgrade():
         batch_op.add_column(sa.Column("upstream_network", sa.String(length=128), nullable=True))
         batch_op.add_column(sa.Column("ufw_enabled", sa.Boolean(), nullable=True))
 
-    try:
-        op.drop_constraint("ck_server_assets_environment", "server_assets", type_="check")
-    except Exception:
-        pass
-    op.create_check_constraint(
-        "ck_server_assets_environment",
-        "server_assets",
-        "environment in ('production', 'staging', 'test', 'backup')",
-    )
+    with op.batch_alter_table("server_assets", schema=None) as batch_op:
+        batch_op.drop_constraint("ck_server_assets_environment", type_="check")
+        batch_op.create_check_constraint(
+            "ck_server_assets_environment",
+            "environment in ('production', 'staging', 'test', 'backup')",
+        )
 
-    try:
-        op.drop_constraint("ck_server_credentials_type", "server_credentials", type_="check")
-    except Exception:
-        pass
-    op.create_check_constraint(
-        "ck_server_credentials_type",
-        "server_credentials",
-        "credential_type in ('ssh', 'mysql', 'database', 'redis', 'kafka', 'api', 'web', 'switch', 'other')",
-    )
+    with op.batch_alter_table("server_credentials", schema=None) as batch_op:
+        batch_op.drop_constraint("ck_server_credentials_type", type_="check")
+        batch_op.create_check_constraint(
+            "ck_server_credentials_type",
+            "credential_type in ('ssh', 'mysql', 'database', 'redis', 'kafka', 'api', 'web', 'switch', 'other')",
+        )
 
 
 def downgrade():
-    try:
-        op.drop_constraint("ck_server_credentials_type", "server_credentials", type_="check")
-    except Exception:
-        pass
-    op.create_check_constraint(
-        "ck_server_credentials_type",
-        "server_credentials",
-        "credential_type in ('ssh', 'mysql', 'database', 'redis', 'kafka', 'web', 'other')",
-    )
+    with op.batch_alter_table("server_credentials", schema=None) as batch_op:
+        batch_op.drop_constraint("ck_server_credentials_type", type_="check")
+        batch_op.create_check_constraint(
+            "ck_server_credentials_type",
+            "credential_type in ('ssh', 'mysql', 'database', 'redis', 'kafka', 'web', 'other')",
+        )
 
-    try:
-        op.drop_constraint("ck_server_assets_environment", "server_assets", type_="check")
-    except Exception:
-        pass
-    op.create_check_constraint(
-        "ck_server_assets_environment",
-        "server_assets",
-        "environment in ('production', 'staging', 'test')",
-    )
+    with op.batch_alter_table("server_assets", schema=None) as batch_op:
+        batch_op.drop_constraint("ck_server_assets_environment", type_="check")
+        batch_op.create_check_constraint(
+            "ck_server_assets_environment",
+            "environment in ('production', 'staging', 'test')",
+        )
 
     with op.batch_alter_table("server_assets", schema=None) as batch_op:
         batch_op.drop_column("ufw_enabled")

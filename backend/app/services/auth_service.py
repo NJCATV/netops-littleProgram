@@ -15,6 +15,7 @@ from app.utils.security import encrypt_oss_password, hash_password, verify_passw
 def find_users_by_account(account):
     normalized = (account or "").strip()
     return User.query.filter(or_(
+        User.username == normalized,
         User.mobile == normalized,
         User.oa_username == normalized,
         User.oss_account == normalized,

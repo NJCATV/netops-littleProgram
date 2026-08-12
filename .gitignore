@@ -19,6 +19,8 @@ logs/
 tmp/
 temp/
 backend/uploads/
+backend/dev.db
+backend/.tmp-*.db
 oss_users_import.*
 
 # OS and editor

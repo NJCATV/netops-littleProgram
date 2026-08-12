@@ -1,12 +1,16 @@
 # DATABASE_DESIGN
 
 ## 一、设计原则
+- 本项目按全新系统建设，不导入旧数据库内容；旧库只作为功能分析参考。
 - 数据库设计以 `统一工单池_含OSS融合_技术与实施总规划.md` 为准。
 - 统一工单主表必须容纳内部工单、OSS 工单和外部系统工单。
 - OSS 原始状态和原始载荷保留，但平台列表、权限、SLA、统计必须使用统一字段。
 - 高频筛选字段结构化；来源系统差异放入 JSON。
 - 密码、token、OSS 凭据不得明文存储。
 - 服务器资产账号、数据库口令、私钥、token 等敏感凭据必须加密存储，列表和普通详情接口不得返回明文。
+- 智能装维 V2 的权威结构见 `docs/SMART_INSTALLATION_DATABASE_V2.md`。
+- OSS 账号和身份使用 `external_accounts / external_identities / user_external_identity_links`，`users.oss_*` 只在兼容期保留。
+- 智能装维通过 `installation_cases.work_order_id` 接入统一工单，不建立独立 OSS 工单主表。
 
 ## 二、用户与权限域
 

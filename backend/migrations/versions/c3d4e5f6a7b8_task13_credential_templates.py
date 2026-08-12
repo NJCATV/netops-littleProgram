@@ -15,24 +15,18 @@ depends_on = None
 
 
 def upgrade():
-    try:
-        op.drop_constraint("ck_server_credentials_type", "server_credentials", type_="check")
-    except Exception:
-        pass
-    op.create_check_constraint(
-        "ck_server_credentials_type",
-        "server_credentials",
-        "credential_type in ('ssh', 'mysql', 'database', 'redis', 'kafka', 'web', 'other')",
-    )
+    with op.batch_alter_table("server_credentials", schema=None) as batch_op:
+        batch_op.drop_constraint("ck_server_credentials_type", type_="check")
+        batch_op.create_check_constraint(
+            "ck_server_credentials_type",
+            "credential_type in ('ssh', 'mysql', 'database', 'redis', 'kafka', 'web', 'other')",
+        )
 
 
 def downgrade():
-    try:
-        op.drop_constraint("ck_server_credentials_type", "server_credentials", type_="check")
-    except Exception:
-        pass
-    op.create_check_constraint(
-        "ck_server_credentials_type",
-        "server_credentials",
-        "credential_type in ('ssh', 'mysql', 'database', 'web', 'other')",
-    )
+    with op.batch_alter_table("server_credentials", schema=None) as batch_op:
+        batch_op.drop_constraint("ck_server_credentials_type", type_="check")
+        batch_op.create_check_constraint(
+            "ck_server_credentials_type",
+            "credential_type in ('ssh', 'mysql', 'database', 'web', 'other')",
+        )

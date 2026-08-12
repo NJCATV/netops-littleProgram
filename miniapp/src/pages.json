@@ -122,6 +122,25 @@
       }
     },
     {
+      "path": "pages/work-orders/index",
+      "style": {
+        "navigationBarTitleText": "智能装维",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/work-orders/detail",
+      "style": {
+        "navigationBarTitleText": "工单详情"
+      }
+    },
+    {
+      "path": "pages/work-orders/installation",
+      "style": {
+        "navigationBarTitleText": "现场智能检测"
+      }
+    },
+    {
       "path": "pages/netops/radius/index",
       "style": {
         "navigationBarTitleText": "Radius 一键诊断"

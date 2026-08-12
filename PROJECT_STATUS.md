@@ -21,12 +21,11 @@ OSS 工单必须纳入统一工单池。OSS 查询可以保留原始能力，但
 - 已有 Blueprint 路由：认证、用户管理、组织管理、菜单管理、工作台、文件、健康检查。
 
 ### 当前数据库使用情况
-- 当前历史数据库名记录为 `anbo_wx`。
-- 新平台数据库名已确认为 `zhiwei_assistant`，统一工单池后续迁移面向该库执行。
+- 生产数据库为 `anbo_wx`；智能装维在该库原位新增业务表，不切换数据库。
 - 已有模型：`users`、`org_units`、`app_menus`、`login_logs`、`operation_logs`，其中 `users` 已包含 `avatar_url`。
 - 已有统一工单池基础模型：`work_orders`、`work_order_logs`、`work_order_comments`，已完成 Task 10 数据层和迁移。
 - 已有简化版服务器资产台账、共享可见性和加密连接资料表。
-- 尚无独立 `roles`、`permissions`、`user_roles`、`role_permissions`。
+- 用户、角色、组织和 OSS 绑定全部复用现有平台字段，不建设独立身份表。
 
 ### 当前已完成页面
 - uni-app 网管中心：已完成移动端整体重建；ONU 历史显示日期/时间并可打开重复记录详情，质差页包含趋势、OLT 排名和端口统计，OLT 设备按区域/机房组折叠，性能页默认不选择采集异常。

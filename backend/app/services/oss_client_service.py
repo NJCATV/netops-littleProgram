@@ -3,7 +3,6 @@ from urllib import error, request as urlrequest
 
 from flask import current_app
 
-from app.models import ExternalAccount
 from app.utils.security import decrypt_oss_password
 
 
@@ -21,12 +20,11 @@ BUSINESS_HEADERS = {
 
 
 def get_user_oss_account(user):
-    account = ExternalAccount.query.filter_by(user_id=user.id, system_code="OSS", status="active").first()
-    if account is None:
+    if user.oss_bind_status != "bound" or not user.oss_account:
         raise OssClientError("OSS account is not bound")
-    if not account.credential_cipher:
+    if not user.oss_password_cipher:
         raise OssClientError("OSS credential is unavailable")
-    return account
+    return user
 
 
 def _decode_json(raw):
@@ -70,8 +68,8 @@ def _post(path, body, token=None, timeout=None):
 def login(account):
     from app.services.oss_service import md5_password
 
-    password = decrypt_oss_password(account.credential_cipher)
-    body = f"{{'passWord':'{md5_password(password)}','userName':'{account.account}','comeFrom':'2'}}".encode("utf-8")
+    password = decrypt_oss_password(account.oss_password_cipher)
+    body = f"{{'passWord':'{md5_password(password)}','userName':'{account.oss_account}','comeFrom':'2'}}".encode("utf-8")
     _, headers, data = _post("login", body)
     if str(data.get("returnCode")) != "0":
         raise OssClientError(str(data.get("resultInfo") or "OSS login failed"))

@@ -25,10 +25,6 @@ WORK_ORDER_STATUSES = (
     "cancelled",
 )
 WORK_ORDER_PRIORITIES = ("P1", "P2", "P3", "P4")
-ROLE_DATA_SCOPES = ("self", "org", "org_tree", "all")
-MEMBERSHIP_TYPES = ("primary", "secondary", "managed")
-EXTERNAL_ACCOUNT_STATUSES = ("pending", "active", "disabled", "error")
-IDENTITY_LINK_STATUSES = ("pending", "confirmed", "rejected")
 SERVER_ASSET_STATUSES = ("active", "maintenance", "offline")
 SERVER_ASSET_ENVIRONMENTS = ("production", "staging", "test", "backup")
 SERVER_CREDENTIAL_TYPES = ("ssh", "mysql", "database", "redis", "kafka", "api", "web", "switch", "other")
@@ -85,8 +81,7 @@ class User(TimestampMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_type = db.Column(db.String(20), nullable=False, default="internal")
-    username = db.Column(db.String(64), nullable=True, unique=True)
-    mobile = db.Column(db.String(32), nullable=True, unique=True)
+    mobile = db.Column(db.String(32), nullable=False, unique=True)
     oa_username = db.Column(db.String(64), nullable=True, unique=True)
     oss_account = db.Column(db.String(64), nullable=True, unique=True)
     oss_password_cipher = db.Column(db.Text, nullable=True)
@@ -134,7 +129,6 @@ class User(TimestampMixin, db.Model):
         return {
             "id": self.id,
             "user_type": self.user_type,
-            "username": self.username,
             "real_name": self.real_name,
             "avatar_url": self.avatar_url,
             "mobile": self.mobile,
@@ -149,250 +143,6 @@ class User(TimestampMixin, db.Model):
             "status": self.status,
             "password_status": self.password_status,
         }
-
-
-class Role(TimestampMixin, db.Model):
-    __tablename__ = "roles"
-
-    id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(64), nullable=False, unique=True)
-    name = db.Column(db.String(64), nullable=False)
-    data_scope = db.Column(db.String(20), nullable=False, default="self")
-    status = db.Column(db.String(20), nullable=False, default="active")
-    built_in = db.Column(db.Boolean, nullable=False, default=False)
-
-    __table_args__ = (
-        CheckConstraint(
-            "data_scope in ('self', 'org', 'org_tree', 'all')",
-            name="ck_roles_data_scope",
-        ),
-        CheckConstraint("status in ('active', 'disabled')", name="ck_roles_status"),
-    )
-
-
-class Permission(TimestampMixin, db.Model):
-    __tablename__ = "permissions"
-
-    id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(128), nullable=False, unique=True)
-    name = db.Column(db.String(128), nullable=False)
-    module = db.Column(db.String(64), nullable=False)
-    action = db.Column(db.String(64), nullable=False)
-    status = db.Column(db.String(20), nullable=False, default="active")
-
-    __table_args__ = (
-        CheckConstraint("status in ('active', 'disabled')", name="ck_permissions_status"),
-        Index("ix_permissions_module", "module"),
-    )
-
-
-class UserRole(db.Model):
-    __tablename__ = "user_roles"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    role_id = db.Column(db.Integer, db.ForeignKey("roles.id", ondelete="CASCADE"), nullable=False)
-    scope_org_id = db.Column(db.Integer, db.ForeignKey("org_units.id", ondelete="SET NULL"), nullable=True)
-    assigned_by = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
-    user = db.relationship("User", foreign_keys=[user_id], backref="role_assignments")
-    role = db.relationship("Role", backref="user_assignments")
-    scope_org = db.relationship("OrgUnit")
-
-    __table_args__ = (
-        db.UniqueConstraint("user_id", "role_id", "scope_org_id", name="uq_user_roles_assignment"),
-        Index("ix_user_roles_user_id", "user_id"),
-        Index("ix_user_roles_role_id", "role_id"),
-    )
-
-
-class RolePermission(db.Model):
-    __tablename__ = "role_permissions"
-
-    id = db.Column(db.Integer, primary_key=True)
-    role_id = db.Column(db.Integer, db.ForeignKey("roles.id", ondelete="CASCADE"), nullable=False)
-    permission_id = db.Column(db.Integer, db.ForeignKey("permissions.id", ondelete="CASCADE"), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
-    role = db.relationship("Role", backref="permission_assignments")
-    permission = db.relationship("Permission", backref="role_assignments")
-
-    __table_args__ = (
-        db.UniqueConstraint("role_id", "permission_id", name="uq_role_permissions_pair"),
-        Index("ix_role_permissions_role_id", "role_id"),
-    )
-
-
-class UserOrgMembership(TimestampMixin, db.Model):
-    __tablename__ = "user_org_memberships"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    org_id = db.Column(db.Integer, db.ForeignKey("org_units.id", ondelete="CASCADE"), nullable=False)
-    membership_type = db.Column(db.String(20), nullable=False, default="primary")
-    is_primary = db.Column(db.Boolean, nullable=False, default=False)
-    status = db.Column(db.String(20), nullable=False, default="active")
-    valid_from = db.Column(db.DateTime, nullable=True)
-    valid_to = db.Column(db.DateTime, nullable=True)
-
-    user = db.relationship("User", backref="org_memberships")
-    org = db.relationship("OrgUnit", backref="user_memberships")
-
-    __table_args__ = (
-        CheckConstraint(
-            "membership_type in ('primary', 'secondary', 'managed')",
-            name="ck_user_org_memberships_type",
-        ),
-        CheckConstraint(
-            "status in ('active', 'disabled')",
-            name="ck_user_org_memberships_status",
-        ),
-        db.UniqueConstraint("user_id", "org_id", "membership_type", name="uq_user_org_memberships"),
-        Index("ix_user_org_memberships_user_id", "user_id"),
-        Index("ix_user_org_memberships_org_id", "org_id"),
-    )
-
-
-class ExternalAccount(TimestampMixin, db.Model):
-    __tablename__ = "external_accounts"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    system_code = db.Column(db.String(32), nullable=False)
-    account = db.Column(db.String(128), nullable=False)
-    credential_cipher = db.Column(db.Text, nullable=True)
-    secret_hint = db.Column(db.String(32), nullable=True)
-    status = db.Column(db.String(20), nullable=False, default="pending")
-    last_verified_at = db.Column(db.DateTime, nullable=True)
-    metadata_json = db.Column(db.JSON, nullable=True)
-
-    user = db.relationship("User", backref="external_accounts")
-
-    __table_args__ = (
-        CheckConstraint(
-            "status in ('pending', 'active', 'disabled', 'error')",
-            name="ck_external_accounts_status",
-        ),
-        db.UniqueConstraint("system_code", "account", name="uq_external_accounts_system_account"),
-        db.UniqueConstraint("user_id", "system_code", name="uq_external_accounts_user_system"),
-        Index("ix_external_accounts_user_id", "user_id"),
-        Index("ix_external_accounts_system_code", "system_code"),
-    )
-
-
-class ExternalIdentity(TimestampMixin, db.Model):
-    __tablename__ = "external_identities"
-
-    id = db.Column(db.Integer, primary_key=True)
-    external_account_id = db.Column(
-        db.Integer,
-        db.ForeignKey("external_accounts.id", ondelete="CASCADE"),
-        nullable=True,
-    )
-    system_code = db.Column(db.String(32), nullable=False)
-    identity_type = db.Column(db.String(32), nullable=False)
-    external_id = db.Column(db.String(128), nullable=False)
-    external_username = db.Column(db.String(128), nullable=True)
-    display_name = db.Column(db.String(128), nullable=True)
-    department_name = db.Column(db.String(128), nullable=True)
-    area_id = db.Column(db.String(64), nullable=True)
-    area_name = db.Column(db.String(128), nullable=True)
-    work_area_ids_json = db.Column(db.JSON, nullable=True)
-    raw_profile_json = db.Column(db.JSON, nullable=True)
-    last_seen_at = db.Column(db.DateTime, nullable=True)
-
-    external_account = db.relationship("ExternalAccount", backref="identities")
-
-    __table_args__ = (
-        db.UniqueConstraint(
-            "system_code",
-            "identity_type",
-            "external_id",
-            name="uq_external_identities_natural_key",
-        ),
-        Index("ix_external_identities_account_id", "external_account_id"),
-        Index("ix_external_identities_external_username", "external_username"),
-    )
-
-
-class UserExternalIdentityLink(TimestampMixin, db.Model):
-    __tablename__ = "user_external_identity_links"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    external_identity_id = db.Column(
-        db.Integer,
-        db.ForeignKey("external_identities.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    match_method = db.Column(db.String(32), nullable=False)
-    status = db.Column(db.String(20), nullable=False, default="pending")
-    is_primary = db.Column(db.Boolean, nullable=False, default=False)
-    confirmed_by = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    confirmed_at = db.Column(db.DateTime, nullable=True)
-
-    user = db.relationship("User", foreign_keys=[user_id], backref="external_identity_links")
-    external_identity = db.relationship("ExternalIdentity", backref="user_links")
-
-    __table_args__ = (
-        CheckConstraint(
-            "status in ('pending', 'confirmed', 'rejected')",
-            name="ck_user_external_identity_links_status",
-        ),
-        db.UniqueConstraint("user_id", "external_identity_id", name="uq_user_external_identity_links"),
-        Index("ix_user_external_identity_links_user_id", "user_id"),
-        Index("ix_user_external_identity_links_identity_id", "external_identity_id"),
-    )
-
-
-class ExternalOrgMapping(TimestampMixin, db.Model):
-    __tablename__ = "external_org_mappings"
-
-    id = db.Column(db.Integer, primary_key=True)
-    system_code = db.Column(db.String(32), nullable=False)
-    external_org_type = db.Column(db.String(32), nullable=False)
-    external_org_id = db.Column(db.String(128), nullable=False)
-    external_org_name = db.Column(db.String(128), nullable=True)
-    org_id = db.Column(db.Integer, db.ForeignKey("org_units.id", ondelete="CASCADE"), nullable=False)
-    status = db.Column(db.String(20), nullable=False, default="active")
-    confirmed_by = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-
-    org = db.relationship("OrgUnit", backref="external_mappings")
-
-    __table_args__ = (
-        db.UniqueConstraint(
-            "system_code",
-            "external_org_type",
-            "external_org_id",
-            name="uq_external_org_mappings_natural_key",
-        ),
-        Index("ix_external_org_mappings_org_id", "org_id"),
-    )
-
-
-class IdentityMatchLog(db.Model):
-    __tablename__ = "identity_match_logs"
-
-    id = db.Column(db.Integer, primary_key=True)
-    system_code = db.Column(db.String(32), nullable=False)
-    external_identity_id = db.Column(
-        db.Integer,
-        db.ForeignKey("external_identities.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-    candidate_user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    match_method = db.Column(db.String(32), nullable=False)
-    match_status = db.Column(db.String(20), nullable=False)
-    detail_json = db.Column(db.JSON, nullable=True)
-    operator_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
-    __table_args__ = (
-        Index("ix_identity_match_logs_identity_id", "external_identity_id"),
-        Index("ix_identity_match_logs_candidate_user_id", "candidate_user_id"),
-        Index("ix_identity_match_logs_created_at", "created_at"),
-    )
 
 
 class AppMenu(TimestampMixin, db.Model):
@@ -1136,7 +886,7 @@ class OssSyncLog(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     work_order_id = db.Column(db.Integer, db.ForeignKey("work_orders.id", ondelete="SET NULL"), nullable=True)
-    external_account_id = db.Column(db.Integer, db.ForeignKey("external_accounts.id", ondelete="SET NULL"), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     operation = db.Column(db.String(64), nullable=False)
     idempotency_key = db.Column(db.String(128), nullable=True)
     status = db.Column(db.String(20), nullable=False)
@@ -1147,6 +897,7 @@ class OssSyncLog(db.Model):
 
     __table_args__ = (
         Index("ix_oss_sync_logs_work_order_id", "work_order_id"),
+        Index("ix_oss_sync_logs_user_id", "user_id"),
         Index("ix_oss_sync_logs_created_at", "created_at"),
     )
 

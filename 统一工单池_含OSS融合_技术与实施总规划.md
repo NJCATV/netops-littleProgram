@@ -1,5 +1,7 @@
 # 《智维助手小程序统一工单与用户体系项目实施指南》
 
+> **历史规划说明（2026-08-12）**：本文早期按“新建独立平台和数据库”的假设编写，该假设已废止。当前权威方案见 `PROJECT_PLAN.md`、`DATABASE_DESIGN.md` 和 `docs/SMART_INSTALLATION_DATABASE_V2.md`：智能装维必须融合现有智维平台并复用 `anbo_wx`、现有用户/组织/角色及 `users.oss_*` 字段。本文其余内容仅保留作历史需求参考，不得据此创建平行身份体系或数据库。
+
 ## 执行摘要
 
 我将本项目定义为：在**不推翻现有小程序技术栈**的前提下，把“智维助手”从当前偏单点工具/OSS外挂式能力，升级为一个面向江苏有线南京分公司内部使用的**统一用户体系 + 统一工单池 + OSS兼容接入 + 运维工具聚合入口**。从技术可行性看，继续沿用 **uni-app 小程序前端 + Flask 后端 + MySQL** 是可落地且适合两周内由两人配合 Codex 推进的方案：uni-app 原生支持页面路由、底部 tabBar、本地缓存、定位和文件上传；Flask 的 Blueprint 机制适合按模块拆分大型应用，官方测试文档也直接给出了基于 `pytest` 与 test client 的接口测试方式；MySQL 原生支持 `JSON`、外键与索引，适合做统一工单主模型与外部系统原始载荷并存的设计。citeturn3view3turn5view0turn6view0turn6view2turn7view0turn7view1turn10view0turn11view0turn11view2turn11view3

@@ -1,7 +1,7 @@
 """installation and work order v2
 
 Revision ID: 1b2c3d4e5f6a
-Revises: 0a1b2c3d4e5f
+Revises: f0a1b2c3d4e5
 Create Date: 2026-08-12
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 revision = "1b2c3d4e5f6a"
-down_revision = "0a1b2c3d4e5f"
+down_revision = "f0a1b2c3d4e5"
 branch_labels = None
 depends_on = None
 
@@ -241,7 +241,7 @@ def upgrade():
         "oss_sync_logs",
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("work_order_id", sa.Integer(), sa.ForeignKey("work_orders.id", ondelete="SET NULL"), nullable=True),
-        sa.Column("external_account_id", sa.Integer(), sa.ForeignKey("external_accounts.id", ondelete="SET NULL"), nullable=True),
+        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         sa.Column("operation", sa.String(64), nullable=False),
         sa.Column("idempotency_key", sa.String(128), nullable=True),
         sa.Column("status", sa.String(20), nullable=False),
@@ -251,6 +251,7 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(), nullable=False),
     )
     op.create_index("ix_oss_sync_logs_work_order_id", "oss_sync_logs", ["work_order_id"])
+    op.create_index("ix_oss_sync_logs_user_id", "oss_sync_logs", ["user_id"])
     op.create_index("ix_oss_sync_logs_created_at", "oss_sync_logs", ["created_at"])
     op.create_table(
         "export_jobs",

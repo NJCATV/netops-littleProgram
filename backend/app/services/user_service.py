@@ -123,7 +123,6 @@ def query_users(actor, args):
         like = f"%{keyword}%"
         query = query.filter(or_(
             User.real_name.like(like),
-            User.username.like(like),
             User.mobile.like(like),
             User.oa_username.like(like),
             User.oss_account.like(like),

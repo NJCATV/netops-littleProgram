@@ -60,7 +60,8 @@ const routeMap = {
   '/device-orgs': '/pages/netops/admin/index',
   '/permissions': '/pages/admin/menus/index',
   '/users': '/pages/admin/users/index',
-  '/user-orgs': '/pages/admin/orgs/index'
+  '/user-orgs': '/pages/admin/orgs/index',
+  '/work-orders': '/pages/work-orders/index'
 }
 
 const keyMap = {
@@ -78,7 +79,8 @@ const keyMap = {
   'netops.ai_assistant': '/pages/netops/ai-assistant/index',
   'netops.boss-users': '/pages/netops/boss-users/index',
   'netops.boss_users': '/pages/netops/boss-users/index',
-  'netops.admin': '/pages/netops/admin/index'
+  'netops.admin': '/pages/netops/admin/index',
+  'netops.work_orders': '/pages/work-orders/index'
 }
 
 const nameMap = {
@@ -103,7 +105,8 @@ const routeIcon = {
   '/pages/netops/hfc/index': 'hfc', '/pages/netops/radius/index': 'radius',
   '/pages/netops/aiops/index': 'aiops', '/pages/netops/ai-assistant/index': 'assistant',
   '/pages/netops/boss-users/index': 'boss',
-  '/pages/netops/admin/index': 'admin'
+  '/pages/netops/admin/index': 'admin',
+  '/pages/work-orders/index': 'workorder'
 }
 
 const netopsOrder = [
@@ -112,8 +115,10 @@ const netopsOrder = [
   '/pages/netops/quality/index', '/pages/netops/performance/index', '/pages/netops/collector/index',
   '/pages/netops/devices/index', '/pages/netops/boss-users/index', '/pages/netops/admin/index'
 ]
+const workOrderPath = '/pages/work-orders/index'
 const convenienceKeys = new Set(['watermark.camera', 'ip.calculator', 'duty.view', 'server.manage'])
 const nameOverrides = {
+  [workOrderPath]: '智能装维',
   '/pages/netops/onu/index': 'ONU 查询', '/pages/netops/hfc/index': 'CM / CMTS 查询',
   '/pages/netops/dashboard/index': '网络总览', '/pages/netops/quality/index': '质差管理',
   '/pages/netops/radius/index': 'Radius 诊断', '/pages/netops/aiops/index': 'AIOps 看板',
@@ -124,6 +129,7 @@ const nameOverrides = {
 }
 
 const iconLabels = {
+  workorder: '单',
   dashboard: '览', onu: '光', quality: '质', performance: '性', collector: '采',
   radius: '拨', aiops: '智', assistant: '问',
   devices: '网', hfc: '缆', boss: '客', admin: '设', camera: '拍', calculator: '算',
@@ -181,7 +187,7 @@ function iconFor(item) {
 function iconText(icon) { return iconLabels[icon] || iconLabels.default }
 
 function organizeGroups(items) {
-  const buckets = { netops: [], convenience: [], system: [], other: [] }
+  const buckets = { workorder: [], netops: [], convenience: [], system: [], other: [] }
   const seen = new Set()
   items.forEach((source) => {
     const item = { ...source }
@@ -192,7 +198,8 @@ function organizeGroups(items) {
     seen.add(key)
     item.path = path
     item.name = nameOverrides[path] || item.name
-    if (netopsOrder.includes(path)) buckets.netops.push(item)
+    if (path === workOrderPath) buckets.workorder.push(item)
+    else if (netopsOrder.includes(path)) buckets.netops.push(item)
     else if (convenienceKeys.has(item.menu_key)) buckets.convenience.push(item)
     else if (/manage|admin|setting|log|permission/i.test(`${item.menu_key} ${path}`)) buckets.system.push(item)
     else buckets.other.push(item)
@@ -201,6 +208,7 @@ function organizeGroups(items) {
   const convenienceOrder = ['duty.view', 'server.manage', 'watermark.camera', 'ip.calculator']
   buckets.convenience.sort((a, b) => convenienceOrder.indexOf(a.menu_key) - convenienceOrder.indexOf(b.menu_key))
   const result = []
+  if (buckets.workorder.length) result.push({ group_name: '工单', items: buckets.workorder })
   if (buckets.netops.length) result.push({ group_name: '网管', items: buckets.netops })
   if (buckets.convenience.length) result.push({ group_name: '便捷工具', items: buckets.convenience })
   if (buckets.system.length) result.push({ group_name: '系统管理', items: buckets.system })

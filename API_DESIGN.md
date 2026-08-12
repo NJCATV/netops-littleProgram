@@ -365,7 +365,7 @@ V2 基础接口已统一落在 `/api/netops2026/work-orders`，旧 `/api/work-or
 - `created_from`
 - `created_to`
 
-当前 V2 路径为 `GET /api/netops2026/oss/work-orders`。服务端从当前平台用户的 `external_accounts` 读取 OSS 绑定，登录后自动补齐施工区域、本地网和区域参数；token 不落库。
+当前路径为 `GET /api/netops2026/oss/work-orders`。服务端从当前智维平台用户的 `users.oss_*` 字段读取已绑定凭据，登录后自动补齐施工区域、本地网和区域参数；token 不落库。
 
 ### GET /api/oss/work-orders/{external_order_id}
 查询 OSS 原始工单详情。

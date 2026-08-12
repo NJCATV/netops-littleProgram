@@ -17,7 +17,7 @@ def _identity_payload(user):
     public = user.to_public_dict()
     return {
         "subject": str(user.id),
-        "username": public.get("oa_username") or public.get("mobile") or public.get("oss_account") or public.get("username") or str(user.id),
+        "username": public.get("oa_username") or public.get("mobile") or public.get("oss_account") or str(user.id),
         "display_name": public.get("real_name") or public.get("mobile"),
         "role_code": user.role_code or "normal_user",
         "user_type": user.user_type or "internal",

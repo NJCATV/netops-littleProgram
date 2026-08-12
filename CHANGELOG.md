@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-08-12 - Smart Installation Platform Fusion Correction
+
+### Changed
+
+- 智能装维改为现有智维平台内置功能，生产数据库固定复用 `anbo_wx`。
+- 删除平行用户、RBAC、组织成员和外部账号模型；OSS 直接复用当前用户表预留字段。
+- 初始化脚本不再创建或覆盖用户，只补齐现有平台菜单与智能装维业务配置。
+- uni-app 工作台新增智能装维工单入口、五项现场检测、签字与公单通回单流程。
+
+### Verification
+
+- 后端测试 18 项通过；uni-app 微信小程序构建通过。
+
 ## 2026-08-12 - Smart Installation Evidence And AIOps Runtime
 
 ### Added

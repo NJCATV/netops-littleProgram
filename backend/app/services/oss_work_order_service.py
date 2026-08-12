@@ -214,11 +214,11 @@ def _ensure_placeholder_work_order(user, raw_order):
     return db.session.get(WorkOrder, data["id"])
 
 
-def _add_sync_log(work_order_id, account_id, operation, key, status, request_json, response_json, error_message=None):
+def _add_sync_log(work_order_id, user_id, operation, key, status, request_json, response_json, error_message=None):
     db.session.add(
         OssSyncLog(
             work_order_id=work_order_id,
-            external_account_id=account_id,
+            user_id=user_id,
             operation=operation,
             idempotency_key=key,
             status=status,

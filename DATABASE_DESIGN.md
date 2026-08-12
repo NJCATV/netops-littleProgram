@@ -1,56 +1,43 @@
 # DATABASE_DESIGN
 
 ## 一、设计原则
-- 本项目按全新系统建设，不导入旧数据库内容；旧库只作为功能分析参考。
-- 数据库设计以 `统一工单池_含OSS融合_技术与实施总规划.md` 为准。
+- 智能装维融合进现有智维平台，生产数据库固定复用 `anbo_wx`，不得另建账号库或业务库。
+- 现有用户、组织、角色和 OSS 绑定是权威数据，升级只新增智能装维业务表和菜单。
 - 统一工单主表必须容纳内部工单、OSS 工单和外部系统工单。
 - OSS 原始状态和原始载荷保留，但平台列表、权限、SLA、统计必须使用统一字段。
 - 高频筛选字段结构化；来源系统差异放入 JSON。
 - 密码、token、OSS 凭据不得明文存储。
 - 服务器资产账号、数据库口令、私钥、token 等敏感凭据必须加密存储，列表和普通详情接口不得返回明文。
 - 智能装维 V2 的权威结构见 `docs/SMART_INSTALLATION_DATABASE_V2.md`。
-- OSS 账号和身份使用 `external_accounts / external_identities / user_external_identity_links`，`users.oss_*` 只在兼容期保留。
+- OSS 账号直接使用 `users.oss_account / oss_password_cipher / oss_bind_status`。
 - 智能装维通过 `installation_cases.work_order_id` 接入统一工单，不建立独立 OSS 工单主表。
 
 ## 二、用户与权限域
 
 ### users
-当前代码已有 `users` 表雏形，后续需演进为统一用户表。
+直接复用现有 `users` 表。
 
 关键字段：
 - `id`
-- `username`
 - `mobile`
+- `oa_username`
+- `oss_account`
+- `oss_password_cipher`
+- `oss_bind_status`
 - `real_name`
 - `avatar_url`
 - `password_hash`
 - `user_type`
 - `status`
 - `org_id`
+- `role_code`
+- `manage_org_id`
 - `last_login_at`
 - `created_at`
 - `updated_at`
 
-### roles
-- `id`
-- `code`
-- `name`
-- `scope_type`
-- `status`
-- `created_at`
-- `updated_at`
-
-### permissions
-- `id`
-- `code`
-- `name`
-- `module`
-- `action`
-- `created_at`
-- `updated_at`
-
 ### menus
-当前代码已有 `app_menus`，后续统一命名建议为 `menus`。
+继续使用现有 `app_menus`。
 
 关键字段：
 - `id`
@@ -65,20 +52,6 @@
 - `status`
 - `created_at`
 - `updated_at`
-
-### user_roles
-- `id`
-- `user_id`
-- `role_id`
-- `created_at`
-- 唯一约束：`user_id + role_id`
-
-### role_permissions
-- `id`
-- `role_id`
-- `permission_id`
-- `created_at`
-- 唯一约束：`role_id + permission_id`
 
 ## 三、统一工单域
 
@@ -245,18 +218,7 @@
 
 ## 四、OSS 与外部集成域
 
-### external_accounts
-用于保存 OSS 等外部系统账号绑定关系。
-
-- `id`
-- `user_id`
-- `system_name`
-- `external_username`
-- `credential_cipher`
-- `status`
-- `last_verified_at`
-- `created_at`
-- `updated_at`
+OSS 登录凭据直接读取当前 `users` 记录，OSS token 只存在于后端请求生命周期，不落库。
 
 ### integration_endpoints
 - `id`
@@ -502,11 +464,9 @@
 - `created_at`
 - `updated_at`
 
-## 七、当前代码与目标设计差异
-- 当前已有 `users`、`org_units`、`app_menus`、`login_logs`、`operation_logs`。
-- 新平台数据库名已确认为 `zhiwei_assistant`。
-- 当前尚无独立 `roles`、`permissions`、`user_roles`、`role_permissions`。
-- 当前尚无统一工单池相关表。
-- 当前 OSS 绑定字段仍在 `users` 表中，后续建议迁移到 `external_accounts`。
-- 当前菜单表名为 `app_menus`，后续可迁移或兼容为 `menus`。
+## 七、当前实现基线
+- 生产数据库为 `anbo_wx`，已有 `users`、`org_units`、`app_menus`、`login_logs`、`operation_logs`。
+- 角色沿用 `users.role_code`，组织沿用 `users.org_id / manage_org_id`。
+- 统一工单和智能装维表通过原位迁移加入同一数据库。
+- OSS 绑定字段永久保留在 `users`，不迁往第二套外部账号表。
 - 当前已具备简化版服务器资产台账、共享可见性和加密资料表；更细的端口服务、应用服务、数据库实例、防火墙规则、资产 ACL 等完整设计仍待后续逐步实现。

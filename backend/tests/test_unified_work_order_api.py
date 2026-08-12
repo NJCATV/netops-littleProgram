@@ -1,4 +1,3 @@
-import os
 import io
 import tempfile
 import unittest
@@ -20,6 +19,7 @@ from app.models import (
     InstallationPhoto,
     InstallationSignature,
     IntegrationOutbox,
+    OrgUnit,
     OssSyncLog,
     User,
     WorkOrder,
@@ -28,7 +28,7 @@ from app.models import (
 )
 from app.services.oss_work_order_service import dispatch_oss_outbox
 from app.utils.jwt import create_access_token
-from scripts.init_data import seed_orgs, seed_rbac, seed_super_admin
+from app.utils.security import hash_password
 
 
 class TestConfig:
@@ -52,18 +52,23 @@ class UnifiedWorkOrderApiTest(unittest.TestCase):
         self.context = self.app.app_context()
         self.context.push()
         db.create_all()
-        with patch.dict(
-            os.environ,
-            {
-                "DEFAULT_SUPER_ADMIN_USERNAME": "admin",
-                "DEFAULT_SUPER_ADMIN_PASSWORD": "Admin-test-password-123!",
-            },
-            clear=False,
-        ):
-            root = seed_orgs()
-            self.admin = seed_super_admin(root)
-            seed_rbac(self.admin, root)
-            db.session.commit()
+        root = OrgUnit(name="南京", level=1, path="/1/", status="active")
+        db.session.add(root)
+        db.session.flush()
+        self.admin = User(
+            user_type="internal",
+            mobile="13800000000",
+            oa_username="admin",
+            real_name="系统管理员",
+            password_hash=hash_password("Admin-test-password-123!"),
+            password_status="normal",
+            org_id=root.id,
+            role_code="super_admin",
+            status="active",
+            oss_bind_status="unbound",
+        )
+        db.session.add(self.admin)
+        db.session.commit()
         self.headers = {"Authorization": f"Bearer {create_access_token(self.admin.id)}"}
         self.client = self.app.test_client()
 
@@ -240,8 +245,8 @@ class UnifiedWorkOrderApiTest(unittest.TestCase):
 
     def test_oss_return_and_manual_retry_enforce_visibility_and_admin_role(self):
         operator = User(
-            username="operator",
             real_name="Operator",
+            mobile="13800000001",
             password_hash="not-used-by-token-test",
             org_id=self.admin.org_id,
             role_code="normal_user",

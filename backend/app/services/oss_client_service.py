@@ -93,14 +93,22 @@ def business_call(user, path, payload):
 
 
 def query_todo_work_orders(user, params):
+    return _query_work_orders(user, params, picked=False)
+
+
+def query_picked_work_orders(user, params):
+    return _query_work_orders(user, params, picked=True)
+
+
+def _query_work_orders(user, params, picked):
     allowed = {"workAreaId", "localNetId", "areaId", "runSts", "actTypes", "staffId", "rp", "page", "beginTime", "endTime"}
     account = get_user_oss_account(user)
     token, profile = login(account)
     payload = {
         "localNetId": profile.get("localNetId"),
-        "areaId": profile.get("areaId"),
-        "runSts": "D",
-        "staffId": "null",
+        "areaId": profile.get("localNetId") if picked else profile.get("areaId"),
+        "runSts": "P" if picked else "D",
+        "staffId": (profile.get("sysUserId") or profile.get("staffId") or "null") if picked else "null",
     }
     profile_work_areas = profile.get("workAreaIds") or profile.get("workAreaId")
     if profile_work_areas:
@@ -126,3 +134,38 @@ def query_work_order_detail(user, payload):
         raise OssClientError("woNbr is required")
     data["comeHis"] = str((payload or {}).get("comeHis") or "N")
     return business_call(user, "SHEET_DETAIL", data)
+
+
+def claim_work_order(user, wo_nbr):
+    account = get_user_oss_account(user)
+    token, profile = login(account)
+    staff_id = profile.get("sysUserId") or profile.get("staffId")
+    if not staff_id:
+        raise OssClientError("OSS profile does not contain staff id")
+    payload = {"woNbr": str(wo_nbr), "woStaffId": str(staff_id)}
+    raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    _, _, data = _post("SHEET_FETCH", raw, token=token)
+    if str(data.get("returnCode")) != "0":
+        raise OssClientError(str(data.get("resultInfo") or "OSS SHEET_FETCH failed"))
+    return data, profile, account
+
+
+def return_work_order(user, payload):
+    account = get_user_oss_account(user)
+    token, profile = login(account)
+    allowed = {
+        "soNbr", "woNbr", "woType", "failReasonId", "woStaffId", "soCat", "returnType", "remarks",
+        "reWorkDate", "readyInstall", "isSingle", "chgServSpecId", "isDouble", "dutyCauseGrade",
+        "dealCode", "isValidForMIIT", "invalidReasonForMIIT", "finishCustFdbkRslt", "returnVisitRslt",
+        "indictSatisfaction", "dissatisfiedRes", "isEnterpriseAgreesmediation", "visitFlag",
+    }
+    outbound = {key: value for key, value in (payload or {}).items() if key in allowed and (value not in (None, "") or key == "reWorkDate")}
+    outbound["woStaffId"] = str(profile.get("sysUserId") or profile.get("staffId") or outbound.get("woStaffId") or "")
+    for required in ("soNbr", "woNbr", "woStaffId"):
+        if not outbound.get(required):
+            raise OssClientError(f"OSS return parameter is missing: {required}")
+    raw = json.dumps(outbound, ensure_ascii=False).encode("utf-8")
+    _, _, data = _post("WO_RETURN", raw, token=token, timeout=max(current_app.config.get("OSS_VERIFY_TIMEOUT", 8), 15))
+    if str(data.get("returnCode")) != "0":
+        raise OssClientError(str(data.get("resultInfo") or "OSS WO_RETURN failed"))
+    return data, profile, account

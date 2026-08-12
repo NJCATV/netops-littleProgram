@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-08-12 - OSS Reliable Write Adapter
+
+### Added
+
+- 新增 OSS 已领取工单查询、幂等领取、完工回单队列和后台派发脚本。
+- 新增分级重试、同步审计和管理员单条人工重试能力。
+
+### Security
+
+- OSS 回单校验工单可见范围、完工状态与客户签字；事件载荷不保存 OSS 凭据或 token。
+
+### Verification
+
+- 真实 OSS 只执行只读回归；领取和回单写操作由模拟测试覆盖。
+
 ## 2026-08-12 - OSS Adapter
 
 ### Added

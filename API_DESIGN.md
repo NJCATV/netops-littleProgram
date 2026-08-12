@@ -370,6 +370,20 @@ V2 基础接口已统一落在 `/api/netops2026/work-orders`，旧 `/api/work-or
 
 当前 V2 使用 `POST /api/netops2026/oss/work-orders/sync`，接收查询结果中的单条 `order`；使用 `woNbr` 幂等入池并同时写入 `work_order_external_refs`。
 
+### GET /api/netops2026/oss/work-orders/picked
+查询当前 OSS 身份已领取的工单。施工区域、本地网、员工编号等参数由服务端登录资料补齐。
+
+### POST /api/netops2026/oss/work-orders/claim
+领取 OSS 工单并幂等同步到统一工单池。请求体传入查询结果中的单条 `order`；同一用户重复领取同一 `woNbr` 复用同一 outbox 事件，不重复调用 OSS。
+
+### POST /api/netops2026/oss/work-orders/{work_order_id}/return
+将本地已完工工单加入 OSS 回单队列。调用人必须可见该工单，且当前施工轮次必须已有客户签字；接口只入队，不在用户请求内阻塞重试。
+
+### POST /api/netops2026/oss/work-orders/outbox/{outbox_id}/retry
+组织管理员或超级管理员手工重试一条失败事件。后台任务 `python scripts/process_oss_outbox.py` 负责正常派发，失败按 1 分钟、5 分钟、15 分钟、1 小时、6 小时、24 小时退避，最多尝试 6 次。
+
+所有领取和回单操作均使用幂等键，并写入 `oss_sync_logs`；OSS 凭据和 token 不进入 outbox 或审计载荷。
+
 ### POST /api/oss/work-orders/{external_order_id}/refresh
 刷新 OSS 原始状态。
 

@@ -12,7 +12,7 @@ from uuid import uuid4
 from flask import current_app
 
 from app.extensions import db
-from app.models import FileObject, InstallationAiRun, InstallationAttempt, InstallationCase, InstallationPhoto
+from app.models import FileObject, InstallationAiRun, InstallationAttempt, InstallationCase, InstallationPhoto, InstallationSignature, InstallationStatusEvent, WorkOrderLog
 from app.services.aiops_installation_service import AiopsInstallationError, evaluate_installation_agent
 from app.services.unified_work_order_service import get_visible_work_order
 
@@ -160,6 +160,113 @@ def installation_photo_for_user(user, photo_id):
     if get_visible_work_order(user, work_order_id) is None:
         return None, "installation photo not found"
     return photo, None
+
+
+def submit_installation_attempt(user, work_order_id):
+    work_order, attempt, error = current_attempt_for_work_order(user, work_order_id)
+    if error:
+        return None, error
+    latest_runs = {}
+    for run in InstallationAiRun.query.filter_by(attempt_id=attempt.id).order_by(InstallationAiRun.id.desc()).all():
+        if run.agent_code not in latest_runs and run.status == "success":
+            latest_runs[run.agent_code] = run
+    missing = sorted(AGENT_CODES - set(latest_runs))
+    if missing:
+        return None, f"installation agents are incomplete: {','.join(missing)}"
+    scores = [float(run.score or 0) for run in latest_runs.values()]
+    passed = all(run.passed is True for run in latest_runs.values())
+    case = attempt.installation_case
+    previous_status = case.status
+    attempt.submitted_at = datetime.utcnow()
+    attempt.status = "ai_passed" if passed else "rejected"
+    case.status = "awaiting_signature" if passed else "rejected"
+    case.final_result = "pass" if passed else "fail"
+    case.final_score = sum(scores) / len(scores)
+    case.config_snapshot_json = {
+        code: {"agent_version_uid": run.agent_version_uid, "configuration": run.config_snapshot_json}
+        for code, run in latest_runs.items()
+    }
+    db.session.add(
+        InstallationStatusEvent(
+            case_id=case.id, attempt_id=attempt.id, actor_id=user.id, trigger_type="user",
+            action="submit_attempt", from_status=previous_status, to_status=case.status,
+            detail_json={"passed": passed, "score": float(case.final_score), "agents": sorted(latest_runs)},
+        )
+    )
+    db.session.commit()
+    return {"passed": passed, "installation": _case_summary(case)}, None
+
+
+def submit_installation_signature(user, work_order_id, uploaded_file, form):
+    work_order = get_visible_work_order(user, work_order_id)
+    if work_order is None:
+        return None, "work order not found"
+    if work_order.assignee_id not in (None, user.id) and user.role_code != "super_admin":
+        return None, "work order is assigned to another user"
+    case = InstallationCase.query.filter_by(work_order_id=work_order.id).first()
+    attempt = InstallationAttempt.query.filter_by(case_id=case.id, round_no=case.current_round_no).first() if case else None
+    if attempt is None or attempt.status not in {"ai_passed", "completed"}:
+        return None, "installation attempt must pass before signature"
+    existing = InstallationSignature.query.filter_by(attempt_id=attempt.id).first()
+    if existing is not None:
+        return signature_dict(existing), None
+    if uploaded_file is None or not uploaded_file.filename:
+        return None, "signature file is required"
+    raw = uploaded_file.read()
+    max_bytes = int(os.getenv("INSTALLATION_SIGNATURE_MAX_BYTES", str(2 * 1024 * 1024)))
+    extension, mime_type = detect_image(raw)
+    if not raw or len(raw) > max_bytes or extension not in {"jpg", "png"}:
+        return None, "signature file is invalid"
+    storage_key = f"installations/{case.case_uid}/{attempt.attempt_uid}/signature-{uuid4().hex}.{extension}"
+    storage_path = Path(current_app.config["UPLOAD_DIR"]) / storage_key
+    storage_path.parent.mkdir(parents=True, exist_ok=True)
+    storage_path.write_bytes(raw)
+    try:
+        file_object = FileObject(
+            file_uid=str(uuid4()), biz_type="installation_signature", storage_driver="local", storage_key=storage_key,
+            original_name=Path(uploaded_file.filename).name[:255], mime_type=mime_type, size_bytes=len(raw),
+            sha256=hashlib.sha256(raw).hexdigest(), uploader_id=user.id, metadata_json={"work_order_id": work_order.id, "attempt_uid": attempt.attempt_uid},
+        )
+        db.session.add(file_object)
+        db.session.flush()
+        signature = InstallationSignature(
+            attempt_id=attempt.id, file_id=file_object.id, signer_name=str(form.get("signer_name") or "").strip()[:64] or None,
+            signed_at=datetime.utcnow(), created_by=user.id,
+        )
+        db.session.add(signature)
+        attempt.status = "completed"
+        case.status = "completed"
+        old_status = work_order.status
+        if work_order.status not in {"closed", "cancelled"}:
+            work_order.status = "completed"
+        db.session.add(WorkOrderLog(work_order_id=work_order.id, actor_id=user.id, action="installation_complete", from_status=old_status, to_status=work_order.status, detail="customer signed"))
+        db.session.add(InstallationStatusEvent(case_id=case.id, attempt_id=attempt.id, actor_id=user.id, trigger_type="user", action="customer_sign", from_status="awaiting_signature", to_status="completed"))
+        db.session.commit()
+        return signature_dict(signature), None
+    except Exception:
+        db.session.rollback()
+        storage_path.unlink(missing_ok=True)
+        raise
+
+
+def signature_dict(signature):
+    return {
+        "id": signature.id, "signer_name": signature.signer_name,
+        "signed_at": signature.signed_at.isoformat() if signature.signed_at else None,
+        "download_url": f"/api/netops2026/work-orders/installation/signatures/{signature.id}/file",
+    }
+
+
+def installation_signature_for_user(user, signature_id):
+    signature = db.session.get(InstallationSignature, signature_id)
+    attempt = db.session.get(InstallationAttempt, signature.attempt_id) if signature else None
+    if signature is None or attempt is None or get_visible_work_order(user, attempt.installation_case.work_order_id) is None:
+        return None, "installation signature not found"
+    return signature, None
+
+
+def _case_summary(case):
+    return {"case_uid": case.case_uid, "status": case.status, "current_round_no": case.current_round_no, "final_result": case.final_result, "final_score": float(case.final_score) if case.final_score is not None else None}
 
 
 def photo_data_url(photo):

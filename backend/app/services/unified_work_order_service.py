@@ -19,6 +19,7 @@ from app.models import (
     InstallationAiRun,
     InstallationCase,
     InstallationPhoto,
+    InstallationSignature,
     InstallationStatusEvent,
     User,
     WorkOrder,
@@ -378,6 +379,7 @@ def installation_case_dict(case):
     for row in attempts:
         photos = InstallationPhoto.query.filter_by(attempt_id=row.id).order_by(InstallationPhoto.agent_code, InstallationPhoto.sort_order, InstallationPhoto.id).all()
         ai_runs = InstallationAiRun.query.filter_by(attempt_id=row.id).order_by(InstallationAiRun.id.desc()).all()
+        signature = InstallationSignature.query.filter_by(attempt_id=row.id).first()
         attempt_items.append(
             {
                 "id": row.id,
@@ -412,6 +414,12 @@ def installation_case_dict(case):
                     }
                     for run in ai_runs
                 ],
+                "signature": {
+                    "id": signature.id,
+                    "signer_name": signature.signer_name,
+                    "signed_at": signature.signed_at.isoformat() if signature.signed_at else None,
+                    "download_url": f"/api/netops2026/work-orders/installation/signatures/{signature.id}/file",
+                } if signature else None,
             }
         )
     return {

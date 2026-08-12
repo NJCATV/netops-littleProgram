@@ -399,6 +399,49 @@ class UnifiedWorkOrderApiTest(unittest.TestCase):
         self.assertEqual(jobs.status_code, 200)
         self.assertEqual(jobs.get_json()["data"]["items"][0]["job_uid"], job["job_uid"])
 
+    def test_five_agent_submission_and_customer_signature_complete_work_order(self):
+        created = self.client.post(
+            "/api/netops2026/work-orders", headers=self.headers,
+            json={"title": "Five agent workflow", "order_type": "installation"},
+        ).get_json()["data"]
+        self.client.post(
+            f"/api/netops2026/work-orders/{created['id']}/installation/attempts",
+            headers=self.headers, json={},
+        )
+        attempt = InstallationAttempt.query.one()
+        for code in ("site_environment", "onu_label", "optical_power", "speed_test", "splitter_box"):
+            db.session.add(InstallationAiRun(
+                run_uid=str(uuid.uuid4()), attempt_id=attempt.id, agent_code=code,
+                agent_version_uid=f"{code}-v1", model_usage_key="vision_understanding",
+                status="success", config_snapshot_json={"pass_score": 80}, score=90, passed=True,
+            ))
+        db.session.commit()
+
+        submitted = self.client.post(
+            f"/api/netops2026/work-orders/{created['id']}/installation/submit",
+            headers=self.headers, json={},
+        )
+        self.assertEqual(submitted.status_code, 200)
+        self.assertTrue(submitted.get_json()["data"]["passed"])
+        self.assertEqual(submitted.get_json()["data"]["installation"]["status"], "awaiting_signature")
+
+        signed = self.client.post(
+            f"/api/netops2026/work-orders/{created['id']}/installation/signature",
+            headers=self.headers,
+            data={"signer_name": "Test signer", "signature": (io.BytesIO(b"\x89PNG\r\n\x1a\nsignature"), "signature.png")},
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(signed.status_code, 200)
+        signature = signed.get_json()["data"]
+        self.assertEqual(signature["signer_name"], "Test signer")
+        self.assertEqual(db.session.get(WorkOrder, created["id"]).status, "completed")
+        detail = self.client.get(f"/api/netops2026/work-orders/{created['id']}", headers=self.headers).get_json()["data"]
+        self.assertEqual(detail["installation"]["status"], "completed")
+        self.assertEqual(detail["installation"]["attempts"][0]["signature"]["id"], signature["id"])
+        downloaded = self.client.get(signature["download_url"], headers=self.headers)
+        self.assertEqual(downloaded.status_code, 200)
+        downloaded.close()
+
 
 if __name__ == "__main__":
     unittest.main()

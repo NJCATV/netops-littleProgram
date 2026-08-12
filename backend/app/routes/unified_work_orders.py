@@ -4,9 +4,14 @@ from flask import Blueprint, current_app, g, request, send_file
 
 from app.services.installation_workflow_service import (
     installation_photo_for_user,
+    installation_signature_for_user,
     run_installation_agent,
+    submit_installation_attempt,
+    submit_installation_signature,
     upload_installation_photo,
 )
+from app.models import FileObject
+from app.extensions import db
 
 from app.services.unified_work_order_service import (
     add_comment,
@@ -125,3 +130,28 @@ def installation_photo_file_route(photo_id):
 @login_required
 def run_installation_agent_route(work_order_id, agent_code):
     return service_response(*run_installation_agent(g.current_user, work_order_id, agent_code))
+
+
+@unified_work_orders_bp.post("/<int:work_order_id>/installation/submit")
+@login_required
+def submit_installation_route(work_order_id):
+    return service_response(*submit_installation_attempt(g.current_user, work_order_id))
+
+
+@unified_work_orders_bp.post("/<int:work_order_id>/installation/signature")
+@login_required
+def submit_signature_route(work_order_id):
+    return service_response(*submit_installation_signature(g.current_user, work_order_id, request.files.get("signature"), request.form))
+
+
+@unified_work_orders_bp.get("/installation/signatures/<int:signature_id>/file")
+@login_required
+def signature_file_route(signature_id):
+    signature, error = installation_signature_for_user(g.current_user, signature_id)
+    if error:
+        return fail(NOT_FOUND, error, http_status=404)
+    file_object = db.session.get(FileObject, signature.file_id)
+    path = Path(current_app.config["UPLOAD_DIR"]) / file_object.storage_key if file_object else None
+    if path is None or not path.is_file():
+        return fail(NOT_FOUND, "installation signature file not found", http_status=404)
+    return send_file(path, mimetype=file_object.mime_type, download_name=file_object.original_name, conditional=True)

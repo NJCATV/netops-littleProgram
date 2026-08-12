@@ -1,4 +1,5 @@
 import os
+import io
 import tempfile
 import unittest
 import uuid
@@ -13,7 +14,9 @@ from app.extensions import db
 from app.models import (
     FileObject,
     InstallationAttempt,
+    InstallationAiRun,
     InstallationCase,
+    InstallationPhoto,
     InstallationSignature,
     IntegrationOutbox,
     OssSyncLog,
@@ -281,6 +284,69 @@ class UnifiedWorkOrderApiTest(unittest.TestCase):
         self.assertEqual(hidden_return.status_code, 400)
         self.assertEqual(manual_retry.status_code, 403)
         self.assertEqual(manual_retry.get_json()["code"], 4030)
+
+    @patch("app.services.installation_workflow_service.evaluate_installation_agent")
+    def test_installation_photo_upload_and_ai_run_are_persisted(self, mocked_evaluate):
+        created = self.client.post(
+            "/api/netops2026/work-orders",
+            headers=self.headers,
+            json={"title": "Installation evidence test", "order_type": "broadband_install"},
+        )
+        work_order_id = created.get_json()["data"]["id"]
+        started = self.client.post(
+            f"/api/netops2026/work-orders/{work_order_id}/installation/attempts",
+            headers=self.headers,
+            json={},
+        )
+        self.assertEqual(started.status_code, 200)
+        uploaded = self.client.post(
+            f"/api/netops2026/work-orders/{work_order_id}/installation/photos",
+            headers=self.headers,
+            data={
+                "agent_code": "optical_power",
+                "photo": (io.BytesIO(b"\x89PNG\r\n\x1a\nmock-image"), "power.png"),
+            },
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(uploaded.status_code, 200)
+        photo_id = uploaded.get_json()["data"]["id"]
+        mocked_evaluate.return_value = {
+            "agent_code": "optical_power",
+            "agent_name": "Optical power",
+            "version_uid": "agent-version-1",
+            "version_no": 1,
+            "configuration_snapshot": {"pass_score": 80, "scoring_rules": []},
+            "result": {
+                "facts": {"rx_dbm": -20},
+                "rule_scores": [{"code": "rx_range", "score": 90}],
+                "total_score": 90,
+                "passed": True,
+                "issues": [],
+            },
+            "runtime": {"provider": "test", "model": "vision-test", "duration_ms": 10},
+        }
+        evaluated = self.client.post(
+            f"/api/netops2026/work-orders/{work_order_id}/installation/agents/optical_power/run",
+            headers=self.headers,
+            json={},
+        )
+        self.assertEqual(evaluated.status_code, 200)
+        self.assertEqual(evaluated.get_json()["data"]["agent_version_uid"], "agent-version-1")
+        self.assertEqual(InstallationPhoto.query.count(), 1)
+        self.assertEqual(InstallationAiRun.query.filter_by(status="success").count(), 1)
+        self.assertTrue(mocked_evaluate.call_args.args[2]["evidence"][0].startswith("data:image/png;base64,"))
+
+        downloaded = self.client.get(
+            f"/api/netops2026/work-orders/installation/photos/{photo_id}/file",
+            headers=self.headers,
+        )
+        self.assertEqual(downloaded.status_code, 200)
+        downloaded.close()
+        anonymous = self.client.get(f"/api/netops2026/work-orders/installation/photos/{photo_id}/file")
+        self.assertEqual(anonymous.status_code, 401)
+        detail = self.client.get(f"/api/netops2026/work-orders/{work_order_id}", headers=self.headers).get_json()["data"]
+        self.assertEqual(detail["installation"]["attempts"][0]["photos"][0]["agent_code"], "optical_power")
+        self.assertEqual(detail["installation"]["attempts"][0]["ai_runs"][0]["score"], 90.0)
 
 
 if __name__ == "__main__":

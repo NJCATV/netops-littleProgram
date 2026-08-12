@@ -6,7 +6,9 @@ from sqlalchemy import or_
 from app.extensions import db
 from app.models import (
     InstallationAttempt,
+    InstallationAiRun,
     InstallationCase,
+    InstallationPhoto,
     InstallationStatusEvent,
     User,
     WorkOrder,
@@ -176,15 +178,11 @@ def add_comment(user, work_order_id, payload):
 
 def installation_case_dict(case):
     attempts = InstallationAttempt.query.filter_by(case_id=case.id).order_by(InstallationAttempt.round_no.desc()).all()
-    return {
-        "id": case.id,
-        "case_uid": case.case_uid,
-        "work_order_id": case.work_order_id,
-        "status": case.status,
-        "current_round_no": case.current_round_no,
-        "final_result": case.final_result,
-        "final_score": float(case.final_score) if case.final_score is not None else None,
-        "attempts": [
+    attempt_items = []
+    for row in attempts:
+        photos = InstallationPhoto.query.filter_by(attempt_id=row.id).order_by(InstallationPhoto.agent_code, InstallationPhoto.sort_order, InstallationPhoto.id).all()
+        ai_runs = InstallationAiRun.query.filter_by(attempt_id=row.id).order_by(InstallationAiRun.id.desc()).all()
+        attempt_items.append(
             {
                 "id": row.id,
                 "attempt_uid": row.attempt_uid,
@@ -193,9 +191,42 @@ def installation_case_dict(case):
                 "started_at": row.started_at.isoformat() if row.started_at else None,
                 "submitted_at": row.submitted_at.isoformat() if row.submitted_at else None,
                 "superseded_reason": row.superseded_reason,
+                "photos": [
+                    {
+                        "id": photo.id,
+                        "agent_code": photo.agent_code,
+                        "sort_order": photo.sort_order,
+                        "evidence_status": photo.evidence_status,
+                        "mime_type": photo.file.mime_type,
+                        "size_bytes": photo.file.size_bytes,
+                        "download_url": f"/api/netops2026/work-orders/installation/photos/{photo.id}/file",
+                    }
+                    for photo in photos
+                ],
+                "ai_runs": [
+                    {
+                        "run_uid": run.run_uid,
+                        "agent_code": run.agent_code,
+                        "agent_version_uid": run.agent_version_uid,
+                        "status": run.status,
+                        "score": float(run.score) if run.score is not None else None,
+                        "passed": run.passed,
+                        "error_message": run.error_message,
+                        "created_at": run.created_at.isoformat() if run.created_at else None,
+                    }
+                    for run in ai_runs
+                ],
             }
-            for row in attempts
-        ],
+        )
+    return {
+        "id": case.id,
+        "case_uid": case.case_uid,
+        "work_order_id": case.work_order_id,
+        "status": case.status,
+        "current_round_no": case.current_round_no,
+        "final_result": case.final_result,
+        "final_score": float(case.final_score) if case.final_score is not None else None,
+        "attempts": attempt_items,
     }
 
 

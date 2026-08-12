@@ -1,4 +1,12 @@
-from flask import Blueprint, g, request
+from pathlib import Path
+
+from flask import Blueprint, current_app, g, request, send_file
+
+from app.services.installation_workflow_service import (
+    installation_photo_for_user,
+    run_installation_agent,
+    upload_installation_photo,
+)
 
 from app.services.unified_work_order_service import (
     add_comment,
@@ -9,7 +17,7 @@ from app.services.unified_work_order_service import (
     work_order_detail,
 )
 from app.utils.decorators import login_required
-from app.utils.responses import BAD_REQUEST, CONFLICT, NOT_FOUND, fail, success
+from app.utils.responses import BAD_REQUEST, CONFLICT, NOT_FOUND, SERVER_ERROR, fail, success
 
 
 unified_work_orders_bp = Blueprint(
@@ -24,8 +32,10 @@ def service_response(result, error):
         return success(result)
     if error == "work order not found":
         return fail(NOT_FOUND, error, http_status=404)
-    if error in {"work order state conflict", "work order is assigned to another user"}:
+    if error in {"work order state conflict", "work order is assigned to another user", "installation agent run is already pending"}:
         return fail(CONFLICT, error, http_status=409)
+    if error.startswith("AIOps evaluation failed:"):
+        return fail(SERVER_ERROR, error, http_status=502)
     return fail(BAD_REQUEST, error)
 
 
@@ -63,3 +73,27 @@ def comment_route(work_order_id):
 @login_required
 def start_installation_route(work_order_id):
     return service_response(*start_installation_attempt(g.current_user, work_order_id, request.get_json(silent=True) or {}))
+
+
+@unified_work_orders_bp.post("/<int:work_order_id>/installation/photos")
+@login_required
+def upload_installation_photo_route(work_order_id):
+    return service_response(*upload_installation_photo(g.current_user, work_order_id, request.files.get("photo"), request.form))
+
+
+@unified_work_orders_bp.get("/installation/photos/<int:photo_id>/file")
+@login_required
+def installation_photo_file_route(photo_id):
+    photo, error = installation_photo_for_user(g.current_user, photo_id)
+    if error:
+        return fail(NOT_FOUND, error, http_status=404)
+    path = Path(current_app.config["UPLOAD_DIR"]) / photo.file.storage_key
+    if not path.is_file():
+        return fail(NOT_FOUND, "installation photo file not found", http_status=404)
+    return send_file(path, mimetype=photo.file.mime_type, download_name=photo.file.original_name, conditional=True)
+
+
+@unified_work_orders_bp.post("/<int:work_order_id>/installation/agents/<string:agent_code>/run")
+@login_required
+def run_installation_agent_route(work_order_id, agent_code):
+    return service_response(*run_installation_agent(g.current_user, work_order_id, agent_code))

@@ -281,6 +281,20 @@ V2 基础接口已统一落在 `/api/netops2026/work-orders`，旧 `/api/work-or
 
 创建或返回当前智能装维施工轮次。重复调用不会重复创建草稿轮次；后续重新施工会创建新轮次并保留旧证据。
 
+### POST /api/netops2026/work-orders/{id}/installation/photos
+
+向当前施工轮次上传智能体证据，使用 `multipart/form-data`：文件字段为 `photo`，并传 `agent_code`；可选 `photo_role`、`captured_at`、经纬度和 `watermark_json`。支持经文件头核验的 JPG、PNG、WebP，默认单张最大 8 MiB，每个智能体每轮最多 5 张。
+
+### GET /api/netops2026/work-orders/installation/photos/{photo_id}/file
+
+读取施工原图。必须登录且当前用户可见该照片所属工单，不提供公开裸链。
+
+### POST /api/netops2026/work-orders/{id}/installation/agents/{agent_code}/run
+
+对当前轮次指定智能体的有效证据执行质检。业务后端使用最小 `installation.agent.run` 服务身份签名调用 AIOps，成功后保存稳定版本号、配置快照、事实、逐项评分和模型运行摘要；失败保留运行记录和脱敏错误。重复的 `pending` 运行返回 409。
+
+五个 `agent_code` 为 `site_environment`、`onu_label`、`optical_power`、`speed_test`、`splitter_box`。
+
 ## 八、现场记录与文件接口
 
 ### POST /api/work-orders/{id}/site-records
@@ -298,8 +312,7 @@ V2 基础接口已统一落在 `/api/netops2026/work-orders`，旧 `/api/work-or
 ### GET /api/netops2026/files/avatars/{filename}
 读取用户头像文件。
 
-### POST /api/work-orders/{id}/photos
-将上传文件关联到工单照片。
+施工照片统一使用上述智能装维照片接口；头像继续使用独立头像接口。
 
 ## 九、评价接口
 

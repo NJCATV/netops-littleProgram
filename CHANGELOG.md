@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-08-12 - Smart Installation Evidence And AIOps Runtime
+
+### Added
+
+- 新增五类施工照片上传、受控原图读取和当前轮次证据查询。
+- 新增业务后端到已发布 AIOps 智能体的签名执行链路及 AI 运行持久化。
+- 新增普通施工人员可用的 `installation.agent.run` 权限。
+
+### Security
+
+- 图片通过文件头和大小校验；原图读取要求登录及工单可见权限。
+- AIOps 使用最小权限身份签名，浏览器和小程序不获取服务共享密钥。
+
 ## 2026-08-12 - OSS Reliable Write Adapter
 
 ### Added

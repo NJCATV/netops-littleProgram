@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-08-12 - OSS Adapter
+
+### Added
+
+- 新增从 V2 外部账号读取凭据的 OSS 服务端适配器。
+- 新增 OSS 待办查询、详情和幂等同步入统一工单池接口。
+
+### Verification
+
+- 管理员测试身份执行 OSS 只读待办查询成功；未调用领取和回单写接口。
+
 ## 2026-08-12 - Unified Work Order API
 
 ### Added

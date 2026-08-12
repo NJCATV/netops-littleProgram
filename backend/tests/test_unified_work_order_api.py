@@ -8,7 +8,7 @@ from cryptography.fernet import Fernet
 
 from app import create_app
 from app.extensions import db
-from app.models import InstallationAttempt, InstallationCase, WorkOrder, WorkOrderLog
+from app.models import InstallationAttempt, InstallationCase, WorkOrder, WorkOrderExternalRef, WorkOrderLog
 from app.utils.jwt import create_access_token
 from scripts.init_data import seed_orgs, seed_rbac, seed_super_admin
 
@@ -117,6 +117,27 @@ class UnifiedWorkOrderApiTest(unittest.TestCase):
     def test_anonymous_access_is_rejected(self):
         response = self.client.get("/api/netops2026/work-orders")
         self.assertEqual(response.status_code, 401)
+
+    def test_oss_payload_syncs_into_unified_work_order_idempotently(self):
+        payload = {
+            "order": {
+                "woNbr": "OSS-WO-001",
+                "soNbr": "OSS-SO-001",
+                "wotype": "宽带新装",
+                "custName": "测试客户",
+                "contactInfo": "13800000000",
+                "accNbr": "02500000000",
+                "situated": "南京市测试地址",
+                "runSts": "待施工",
+            }
+        }
+        first = self.client.post("/api/netops2026/oss/work-orders/sync", headers=self.headers, json=payload)
+        second = self.client.post("/api/netops2026/oss/work-orders/sync", headers=self.headers, json=payload)
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(first.get_json()["data"]["id"], second.get_json()["data"]["id"])
+        self.assertEqual(WorkOrder.query.filter_by(source_system="OSS").count(), 1)
+        self.assertEqual(WorkOrderExternalRef.query.count(), 1)
 
 
 if __name__ == "__main__":

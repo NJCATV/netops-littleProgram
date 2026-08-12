@@ -352,8 +352,12 @@ V2 基础接口已统一落在 `/api/netops2026/work-orders`，旧 `/api/work-or
 - `created_from`
 - `created_to`
 
+当前 V2 路径为 `GET /api/netops2026/oss/work-orders`。服务端从当前平台用户的 `external_accounts` 读取 OSS 绑定，登录后自动补齐施工区域、本地网和区域参数；token 不落库。
+
 ### GET /api/oss/work-orders/{external_order_id}
 查询 OSS 原始工单详情。
+
+当前 V2 使用 `POST /api/netops2026/oss/work-orders/detail`，请求体包含 `woNbr`，可选 `soNbr/localNetId/comeHis`。
 
 ### POST /api/oss/work-orders/{external_order_id}/sync
 将 OSS 工单同步入统一工单池。
@@ -363,6 +367,8 @@ V2 基础接口已统一落在 `/api/netops2026/work-orders`，旧 `/api/work-or
 - 使用 `external_order_id` 去重。
 - 原始状态写入 `external_status`。
 - 原始载荷写入 `source_payload_json`。
+
+当前 V2 使用 `POST /api/netops2026/oss/work-orders/sync`，接收查询结果中的单条 `order`；使用 `woNbr` 幂等入池并同时写入 `work_order_external_refs`。
 
 ### POST /api/oss/work-orders/{external_order_id}/refresh
 刷新 OSS 原始状态。

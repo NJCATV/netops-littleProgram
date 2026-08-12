@@ -226,9 +226,9 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 - `work_order_comments`
 - 工单号生成、内部工单创建、外部工单幂等同步和工单日志写入服务
 
-接口仍待实现，下一步进入列表、详情和动作接口开发。
+V2 基础接口已统一落在 `/api/netops2026/work-orders`，旧 `/api/work-orders` 仅保留为历史设计说明。
 
-### GET /api/work-orders
+### GET /api/netops2026/work-orders
 统一工单列表。
 
 筛选查询参数：
@@ -248,13 +248,13 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 - `page_size`
 - `sort`
 
-### GET /api/work-orders/{id}
+### GET /api/netops2026/work-orders/{id}
 统一工单详情。
 
-### POST /api/work-orders
+### POST /api/netops2026/work-orders
 创建内部工单。
 
-### POST /api/work-orders/{id}/actions/{action}
+### POST /api/netops2026/work-orders/{id}/actions/{action}
 工单状态动作接口。
 
 动作示例：
@@ -272,6 +272,14 @@ OSS 绑定为非强制行为。未绑定、待确认或校验失败的用户允�
 - 后端根据当前状态、用户权限和动作计算新状态。
 - 前端不得直接提交目标 `status`。
 - 每次动作必须写入 `work_order_logs`。
+
+### POST /api/netops2026/work-orders/{id}/comments
+
+新增工单备注。
+
+### POST /api/netops2026/work-orders/{id}/installation/attempts
+
+创建或返回当前智能装维施工轮次。重复调用不会重复创建草稿轮次；后续重新施工会创建新轮次并保留旧证据。
 
 ## 八、现场记录与文件接口
 

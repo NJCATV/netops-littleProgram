@@ -3,6 +3,7 @@ import io
 import tempfile
 import unittest
 import uuid
+import zipfile
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -347,6 +348,56 @@ class UnifiedWorkOrderApiTest(unittest.TestCase):
         detail = self.client.get(f"/api/netops2026/work-orders/{work_order_id}", headers=self.headers).get_json()["data"]
         self.assertEqual(detail["installation"]["attempts"][0]["photos"][0]["agent_code"], "optical_power")
         self.assertEqual(detail["installation"]["attempts"][0]["ai_runs"][0]["score"], 90.0)
+
+    def test_batch_export_contains_visible_work_orders_and_photos(self):
+        created = self.client.post(
+            "/api/netops2026/work-orders",
+            headers=self.headers,
+            json={"title": "Batch export test", "customer_name": "Test customer", "service_no": "SVC-100"},
+        )
+        work_order = created.get_json()["data"]
+        self.client.post(
+            f"/api/netops2026/work-orders/{work_order['id']}/installation/attempts",
+            headers=self.headers,
+            json={},
+        )
+        uploaded = self.client.post(
+            f"/api/netops2026/work-orders/{work_order['id']}/installation/photos",
+            headers=self.headers,
+            data={
+                "agent_code": "site_environment",
+                "photo": (io.BytesIO(b"\x89PNG\r\n\x1a\nexport-image"), "site.png"),
+            },
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(uploaded.status_code, 200)
+
+        exported = self.client.post(
+            "/api/netops2026/work-orders/exports",
+            headers=self.headers,
+            json={"export_type": "work_orders_with_photos", "work_order_ids": [work_order["id"]]},
+        )
+        self.assertEqual(exported.status_code, 200)
+        job = exported.get_json()["data"]
+        self.assertEqual(job["status"], "completed")
+        self.assertEqual(job["item_count"], 1)
+
+        downloaded = self.client.get(
+            f"/api/netops2026/work-orders/exports/{job['job_uid']}/file",
+            headers=self.headers,
+        )
+        self.assertEqual(downloaded.status_code, 200)
+        with zipfile.ZipFile(io.BytesIO(downloaded.data)) as archive:
+            names = archive.namelist()
+            self.assertIn("work_orders.csv", names)
+            self.assertIn("manifest.json", names)
+            self.assertTrue(any(name.startswith(f"photos/{work_order['order_no']}/") and name.endswith("site.png") for name in names))
+            self.assertIn(work_order["order_no"], archive.read("work_orders.csv").decode("utf-8-sig"))
+        downloaded.close()
+
+        jobs = self.client.get("/api/netops2026/work-orders/exports", headers=self.headers)
+        self.assertEqual(jobs.status_code, 200)
+        self.assertEqual(jobs.get_json()["data"]["items"][0]["job_uid"], job["job_uid"])
 
 
 if __name__ == "__main__":

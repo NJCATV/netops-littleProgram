@@ -11,13 +11,16 @@ from app.services.installation_workflow_service import (
 from app.services.unified_work_order_service import (
     add_comment,
     apply_action,
+    create_export_job,
     create_work_order,
+    export_file_for_user,
+    list_export_jobs,
     list_work_orders,
     start_installation_attempt,
     work_order_detail,
 )
 from app.utils.decorators import login_required
-from app.utils.responses import BAD_REQUEST, CONFLICT, NOT_FOUND, SERVER_ERROR, fail, success
+from app.utils.responses import BAD_REQUEST, CONFLICT, FORBIDDEN, NOT_FOUND, SERVER_ERROR, fail, success
 
 
 unified_work_orders_bp = Blueprint(
@@ -32,6 +35,8 @@ def service_response(result, error):
         return success(result)
     if error == "work order not found":
         return fail(NOT_FOUND, error, http_status=404)
+    if error == "permission denied":
+        return fail(FORBIDDEN, error, http_status=403)
     if error in {"work order state conflict", "work order is assigned to another user", "installation agent run is already pending"}:
         return fail(CONFLICT, error, http_status=409)
     if error.startswith("AIOps evaluation failed:"):
@@ -43,6 +48,29 @@ def service_response(result, error):
 @login_required
 def list_route():
     return service_response(*list_work_orders(g.current_user, request.args))
+
+
+@unified_work_orders_bp.get("/exports")
+@login_required
+def list_exports_route():
+    return service_response(*list_export_jobs(g.current_user, request.args))
+
+
+@unified_work_orders_bp.post("/exports")
+@login_required
+def create_export_route():
+    return service_response(*create_export_job(g.current_user, request.get_json(silent=True) or {}))
+
+
+@unified_work_orders_bp.get("/exports/<string:job_uid>/file")
+@login_required
+def export_file_route(job_uid):
+    path, file_object, error = export_file_for_user(g.current_user, job_uid)
+    if error == "permission denied":
+        return fail(FORBIDDEN, error, http_status=403)
+    if error:
+        return fail(NOT_FOUND, error, http_status=404)
+    return send_file(path, mimetype=file_object.mime_type, download_name=file_object.original_name, as_attachment=True, conditional=True)
 
 
 @unified_work_orders_bp.post("")

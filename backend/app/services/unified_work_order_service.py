@@ -1,10 +1,20 @@
-from datetime import datetime
+import csv
+import hashlib
+import io
+import json
+import zipfile
+from datetime import datetime, timedelta
+from pathlib import Path
 from uuid import uuid4
 
+from flask import current_app
 from sqlalchemy import or_
 
 from app.extensions import db
 from app.models import (
+    ExportJob,
+    ExportJobItem,
+    FileObject,
     InstallationAttempt,
     InstallationAiRun,
     InstallationCase,
@@ -52,7 +62,7 @@ def get_visible_work_order(user, work_order_id):
     return visible_work_orders(user).filter(WorkOrder.id == work_order_id).first()
 
 
-def list_work_orders(user, args):
+def filtered_work_orders(user, args):
     query = visible_work_orders(user)
     keyword = (args.get("keyword") or "").strip()
     if keyword:
@@ -71,6 +81,34 @@ def list_work_orders(user, args):
         value = (args.get(field) or "").strip()
         if value:
             query = query.filter(getattr(WorkOrder, field) == value)
+    for field in ("assignee_id", "owner_org_id"):
+        value = str(args.get(field) or "").strip()
+        if value:
+            try:
+                query = query.filter(getattr(WorkOrder, field) == int(value))
+            except ValueError:
+                raise ValueError(f"{field} is invalid")
+    date_from = str(args.get("date_from") or "").strip()
+    date_to = str(args.get("date_to") or "").strip()
+    try:
+        if date_from:
+            query = query.filter(WorkOrder.created_at >= datetime.fromisoformat(date_from.replace("Z", "+00:00")).replace(tzinfo=None))
+        if date_to:
+            end_at = datetime.fromisoformat(date_to.replace("Z", "+00:00")).replace(tzinfo=None)
+            if len(date_to) == 10:
+                query = query.filter(WorkOrder.created_at < end_at + timedelta(days=1))
+            else:
+                query = query.filter(WorkOrder.created_at <= end_at)
+    except ValueError as exc:
+        raise ValueError("work order date range is invalid") from exc
+    return query
+
+
+def list_work_orders(user, args):
+    try:
+        query = filtered_work_orders(user, args)
+    except ValueError as exc:
+        return None, str(exc)
     try:
         page = max(int(args.get("page", 1)), 1)
         page_size = min(max(int(args.get("page_size", 20)), 1), 100)
@@ -79,6 +117,164 @@ def list_work_orders(user, args):
     total = query.count()
     rows = query.order_by(WorkOrder.updated_at.desc(), WorkOrder.id.desc()).offset((page - 1) * page_size).limit(page_size).all()
     return {"items": [row.to_dict() for row in rows], "total": total, "page": page, "page_size": page_size}, None
+
+
+def export_job_dict(job):
+    return {
+        "job_uid": job.job_uid,
+        "export_type": job.export_type,
+        "filters": job.filters_json or {},
+        "status": job.status,
+        "progress": job.progress,
+        "item_count": ExportJobItem.query.filter_by(export_job_id=job.id).count(),
+        "download_url": f"/work-orders/exports/{job.job_uid}/file" if job.status == "completed" and job.result_file_id else None,
+        "expires_at": job.expires_at.isoformat() if job.expires_at else None,
+        "error_message": job.error_message,
+        "created_at": job.created_at.isoformat() if job.created_at else None,
+        "updated_at": job.updated_at.isoformat() if job.updated_at else None,
+    }
+
+
+def visible_export_job(user, job_uid):
+    query = ExportJob.query.filter_by(job_uid=job_uid)
+    if user.role_code != "super_admin":
+        query = query.filter_by(requested_by=user.id)
+    return query.first()
+
+
+def list_export_jobs(user, args):
+    if user.role_code not in {"org_admin", "super_admin"}:
+        return None, "permission denied"
+    query = ExportJob.query.order_by(ExportJob.created_at.desc(), ExportJob.id.desc())
+    if user.role_code != "super_admin":
+        query = query.filter_by(requested_by=user.id)
+    try:
+        limit = min(max(int(args.get("limit", 20)), 1), 100)
+    except (TypeError, ValueError):
+        return None, "export job limit is invalid"
+    return {"items": [export_job_dict(row) for row in query.limit(limit).all()]}, None
+
+
+def create_export_job(user, payload):
+    if user.role_code not in {"org_admin", "super_admin"}:
+        return None, "permission denied"
+    payload = dict(payload or {})
+    export_type = str(payload.get("export_type") or "work_orders_with_photos").strip()
+    if export_type not in {"work_orders", "work_orders_with_photos"}:
+        return None, "export type is invalid"
+    raw_ids = payload.get("work_order_ids") or []
+    if not isinstance(raw_ids, list):
+        return None, "work_order_ids must be an array"
+    try:
+        selected_ids = list(dict.fromkeys(int(value) for value in raw_ids))
+    except (TypeError, ValueError):
+        return None, "work_order_ids are invalid"
+    filters = payload.get("filters") or {}
+    if not isinstance(filters, dict):
+        return None, "export filters must be an object"
+    try:
+        query = filtered_work_orders(user, filters)
+    except ValueError as exc:
+        return None, str(exc)
+    if selected_ids:
+        query = query.filter(WorkOrder.id.in_(selected_ids))
+    rows = query.order_by(WorkOrder.updated_at.desc(), WorkOrder.id.desc()).limit(501).all()
+    if not rows:
+        return None, "no visible work orders to export"
+    if len(rows) > 500:
+        return None, "a single export accepts at most 500 work orders"
+    if selected_ids and len(rows) != len(selected_ids):
+        return None, "some work orders are not visible"
+
+    job = ExportJob(
+        job_uid=str(uuid4()), requested_by=user.id, export_type=export_type,
+        filters_json={"work_order_ids": selected_ids, "filters": filters}, status="processing", progress=5,
+        expires_at=datetime.utcnow() + timedelta(days=7),
+    )
+    db.session.add(job)
+    db.session.flush()
+    for row in rows:
+        db.session.add(ExportJobItem(export_job_id=job.id, work_order_id=row.id, status="processing"))
+    db.session.commit()
+
+    storage_key = f"exports/{job.job_uid}.zip"
+    storage_path = Path(current_app.config["UPLOAD_DIR"]) / storage_key
+    storage_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        csv_buffer = io.StringIO(newline="")
+        writer = csv.writer(csv_buffer)
+        writer.writerow(["平台工单号", "OSS工单号", "来源", "标题", "类型", "状态", "优先级", "客户", "联系电话", "业务号", "地址", "责任组织", "处理人", "创建时间", "更新时间"])
+        for row in rows:
+            writer.writerow([
+                row.order_no, row.external_order_id or "", row.source_system, row.title, row.order_type or "", row.status,
+                row.priority, row.customer_name or "", row.customer_phone or "", row.service_no or "", row.address_text or "",
+                row.owner_org.name if row.owner_org else "", row.assignee.real_name if row.assignee else "",
+                row.created_at.isoformat() if row.created_at else "", row.updated_at.isoformat() if row.updated_at else "",
+            ])
+        with zipfile.ZipFile(storage_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("work_orders.csv", "\ufeff" + csv_buffer.getvalue())
+            manifest = {"job_uid": job.job_uid, "exported_at": datetime.utcnow().isoformat(), "work_order_count": len(rows), "includes_photos": export_type == "work_orders_with_photos"}
+            archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+            if export_type == "work_orders_with_photos":
+                order_ids = [row.id for row in rows]
+                photos = (
+                    InstallationPhoto.query.join(InstallationAttempt).join(InstallationCase)
+                    .filter(InstallationCase.work_order_id.in_(order_ids), InstallationPhoto.evidence_status == "active")
+                    .order_by(InstallationCase.work_order_id, InstallationAttempt.round_no, InstallationPhoto.agent_code, InstallationPhoto.sort_order)
+                    .all()
+                )
+                row_by_id = {row.id: row for row in rows}
+                for photo in photos:
+                    work_order_id = photo.attempt.installation_case.work_order_id
+                    order = row_by_id[work_order_id]
+                    source_path = Path(current_app.config["UPLOAD_DIR"]) / photo.file.storage_key
+                    raw = source_path.read_bytes()
+                    if hashlib.sha256(raw).hexdigest() != photo.file.sha256:
+                        raise ValueError(f"installation photo integrity check failed: {photo.id}")
+                    safe_name = Path(photo.file.original_name or f"photo-{photo.id}").name
+                    archive.writestr(f"photos/{order.order_no}/round-{photo.attempt.round_no}/{photo.agent_code or 'other'}/{photo.id}-{safe_name}", raw)
+        raw_archive = storage_path.read_bytes()
+        file_object = FileObject(
+            file_uid=str(uuid4()), biz_type="work_order_export", storage_driver="local", storage_key=storage_key,
+            original_name=f"work-orders-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.zip", mime_type="application/zip",
+            size_bytes=len(raw_archive), sha256=hashlib.sha256(raw_archive).hexdigest(), uploader_id=user.id,
+            metadata_json={"job_uid": job.job_uid, "work_order_count": len(rows), "export_type": export_type},
+        )
+        db.session.add(file_object)
+        db.session.flush()
+        job.result_file_id = file_object.id
+        job.status = "completed"
+        job.progress = 100
+        ExportJobItem.query.filter_by(export_job_id=job.id).update({"status": "completed"})
+        db.session.commit()
+        return export_job_dict(job), None
+    except Exception as exc:
+        db.session.rollback()
+        storage_path.unlink(missing_ok=True)
+        failed = db.session.get(ExportJob, job.id)
+        if failed is not None:
+            failed.status = "failed"
+            failed.error_message = str(exc)[:512]
+            ExportJobItem.query.filter_by(export_job_id=failed.id).update({"status": "failed"})
+            db.session.commit()
+        return None, "work order export failed"
+
+
+def export_file_for_user(user, job_uid):
+    if user.role_code not in {"org_admin", "super_admin"}:
+        return None, None, "permission denied"
+    job = visible_export_job(user, job_uid)
+    if job is None or job.status != "completed" or not job.result_file_id:
+        return None, None, "export file not found"
+    if job.expires_at and job.expires_at < datetime.utcnow():
+        return None, None, "export file expired"
+    file_object = db.session.get(FileObject, job.result_file_id)
+    if file_object is None:
+        return None, None, "export file not found"
+    path = Path(current_app.config["UPLOAD_DIR"]) / file_object.storage_key
+    if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != file_object.sha256:
+        return None, None, "export file not found"
+    return path, file_object, None
 
 
 def work_order_detail(user, work_order_id):

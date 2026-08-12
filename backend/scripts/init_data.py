@@ -46,6 +46,7 @@ DEFAULT_MENUS = [
     ("netops.radius", "Radius诊断", "radius", "/pages/netops/radius/index", "网管", "normal_user", 30),
     ("netops.dashboard", "网络总览", "dashboard", "/pages/netops/dashboard/index", "网管", "normal_user", 40),
     ("netops.aiops", "AIOps看板", "aiops", "/pages/netops/aiops/index", "网管", "normal_user", 50),
+    ("netops.work_orders", "智能装维工单", "work-order", "/pages/work-orders/index", "工单", "normal_user", 10),
     ("netops.ai_assistant", "AI运维助手", "assistant", "/pages/netops/ai-assistant/index", "网管", "normal_user", 60),
     ("netops.quality", "质差管理", "quality", "/pages/netops/quality/index", "网管", "normal_user", 70),
     ("netops.performance", "OLT性能", "performance", "/pages/netops/performance/index", "网管", "normal_user", 80),

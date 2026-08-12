@@ -353,7 +353,7 @@ class UnifiedWorkOrderApiTest(unittest.TestCase):
         created = self.client.post(
             "/api/netops2026/work-orders",
             headers=self.headers,
-            json={"title": "Batch export test", "customer_name": "Test customer", "service_no": "SVC-100"},
+            json={"title": "=DANGEROUS()", "customer_name": "Test customer", "service_no": "SVC-100"},
         )
         work_order = created.get_json()["data"]
         self.client.post(
@@ -392,7 +392,9 @@ class UnifiedWorkOrderApiTest(unittest.TestCase):
             self.assertIn("work_orders.csv", names)
             self.assertIn("manifest.json", names)
             self.assertTrue(any(name.startswith(f"photos/{work_order['order_no']}/") and name.endswith("site.png") for name in names))
-            self.assertIn(work_order["order_no"], archive.read("work_orders.csv").decode("utf-8-sig"))
+            csv_text = archive.read("work_orders.csv").decode("utf-8-sig")
+            self.assertIn(work_order["order_no"], csv_text)
+            self.assertIn("'=DANGEROUS()", csv_text)
         downloaded.close()
 
         jobs = self.client.get("/api/netops2026/work-orders/exports", headers=self.headers)
@@ -410,6 +412,13 @@ class UnifiedWorkOrderApiTest(unittest.TestCase):
         )
         attempt = InstallationAttempt.query.one()
         for code in ("site_environment", "onu_label", "optical_power", "speed_test", "splitter_box"):
+            uploaded = self.client.post(
+                f"/api/netops2026/work-orders/{created['id']}/installation/photos",
+                headers=self.headers,
+                data={"agent_code": code, "photo": (io.BytesIO(b"\x89PNG\r\n\x1a\n" + code.encode()), f"{code}.png")},
+                content_type="multipart/form-data",
+            )
+            self.assertEqual(uploaded.status_code, 200)
             db.session.add(InstallationAiRun(
                 run_uid=str(uuid.uuid4()), attempt_id=attempt.id, agent_code=code,
                 agent_version_uid=f"{code}-v1", model_usage_key="vision_understanding",
@@ -441,6 +450,49 @@ class UnifiedWorkOrderApiTest(unittest.TestCase):
         downloaded = self.client.get(signature["download_url"], headers=self.headers)
         self.assertEqual(downloaded.status_code, 200)
         downloaded.close()
+
+    def test_submission_uses_latest_run_and_requires_rerun_after_retake(self):
+        created = self.client.post(
+            "/api/netops2026/work-orders", headers=self.headers, json={"title": "Retake safety"},
+        ).get_json()["data"]
+        self.client.post(f"/api/netops2026/work-orders/{created['id']}/installation/attempts", headers=self.headers, json={})
+        attempt = InstallationAttempt.query.one()
+        codes = ("site_environment", "onu_label", "optical_power", "speed_test", "splitter_box")
+        for code in codes:
+            self.client.post(
+                f"/api/netops2026/work-orders/{created['id']}/installation/photos", headers=self.headers,
+                data={"agent_code": code, "photo": (io.BytesIO(b"\x89PNG\r\n\x1a\nfirst"), f"{code}.png")}, content_type="multipart/form-data",
+            )
+            db.session.add(InstallationAiRun(
+                run_uid=str(uuid.uuid4()), attempt_id=attempt.id, agent_code=code, agent_version_uid="v1",
+                model_usage_key="vision_understanding", status="success", config_snapshot_json={}, score=90, passed=True,
+            ))
+        db.session.commit()
+        latest_failed = InstallationAiRun(
+            run_uid=str(uuid.uuid4()), attempt_id=attempt.id, agent_code="site_environment", agent_version_uid="v1",
+            model_usage_key="vision_understanding", status="failed", config_snapshot_json={}, error_message="provider timeout",
+        )
+        db.session.add(latest_failed)
+        db.session.commit()
+        rejected = self.client.post(f"/api/netops2026/work-orders/{created['id']}/installation/submit", headers=self.headers, json={})
+        self.assertEqual(rejected.status_code, 400)
+        self.assertIn("site_environment", rejected.get_json()["message"])
+
+        latest_failed.status = "success"
+        latest_failed.score = 90
+        latest_failed.passed = True
+        db.session.commit()
+        replaced = self.client.post(
+            f"/api/netops2026/work-orders/{created['id']}/installation/photos", headers=self.headers,
+            data={"agent_code": "site_environment", "replace_active": "1", "photo": (io.BytesIO(b"\x89PNG\r\n\x1a\nsecond"), "retake.png")},
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(replaced.status_code, 200)
+        self.assertEqual(InstallationPhoto.query.filter_by(agent_code="site_environment", evidence_status="active").count(), 1)
+        self.assertEqual(InstallationPhoto.query.filter_by(agent_code="site_environment", evidence_status="superseded").count(), 1)
+        stale = self.client.post(f"/api/netops2026/work-orders/{created['id']}/installation/submit", headers=self.headers, json={})
+        self.assertEqual(stale.status_code, 400)
+        self.assertIn("rerun", stale.get_json()["message"])
 
 
 if __name__ == "__main__":

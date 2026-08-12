@@ -21,6 +21,7 @@ from app.services.unified_work_order_service import (
     export_file_for_user,
     list_export_jobs,
     list_work_orders,
+    file_sha256,
     start_installation_attempt,
     work_order_detail,
 )
@@ -123,6 +124,8 @@ def installation_photo_file_route(photo_id):
     path = Path(current_app.config["UPLOAD_DIR"]) / photo.file.storage_key
     if not path.is_file():
         return fail(NOT_FOUND, "installation photo file not found", http_status=404)
+    if file_sha256(path) != photo.file.sha256:
+        return fail(NOT_FOUND, "installation photo file failed integrity verification", http_status=404)
     return send_file(path, mimetype=photo.file.mime_type, download_name=photo.file.original_name, conditional=True)
 
 
@@ -154,4 +157,6 @@ def signature_file_route(signature_id):
     path = Path(current_app.config["UPLOAD_DIR"]) / file_object.storage_key if file_object else None
     if path is None or not path.is_file():
         return fail(NOT_FOUND, "installation signature file not found", http_status=404)
+    if file_sha256(path) != file_object.sha256:
+        return fail(NOT_FOUND, "installation signature file failed integrity verification", http_status=404)
     return send_file(path, mimetype=file_object.mime_type, download_name=file_object.original_name, conditional=True)

@@ -186,6 +186,19 @@ def create_export_job(user, payload):
         return None, "a single export accepts at most 500 work orders"
     if selected_ids and len(rows) != len(selected_ids):
         return None, "some work orders are not visible"
+    export_photo_bytes = 0
+    if export_type == "work_orders_with_photos":
+        order_ids = [row.id for row in rows]
+        export_photo_bytes = int(
+            db.session.query(db.func.coalesce(db.func.sum(FileObject.size_bytes), 0))
+            .select_from(InstallationPhoto)
+            .join(InstallationAttempt).join(InstallationCase).join(FileObject, InstallationPhoto.file_id == FileObject.id)
+            .filter(InstallationCase.work_order_id.in_(order_ids), InstallationPhoto.evidence_status == "active")
+            .scalar() or 0
+        )
+        max_export_bytes = int(current_app.config.get("WORK_ORDER_EXPORT_MAX_BYTES", 512 * 1024 * 1024))
+        if export_photo_bytes > max_export_bytes:
+            return None, "work order export photo volume exceeds the configured limit"
 
     job = ExportJob(
         job_uid=str(uuid4()), requested_by=user.id, export_type=export_type,
@@ -207,14 +220,14 @@ def create_export_job(user, payload):
         writer.writerow(["平台工单号", "OSS工单号", "来源", "标题", "类型", "状态", "优先级", "客户", "联系电话", "业务号", "地址", "责任组织", "处理人", "创建时间", "更新时间"])
         for row in rows:
             writer.writerow([
-                row.order_no, row.external_order_id or "", row.source_system, row.title, row.order_type or "", row.status,
-                row.priority, row.customer_name or "", row.customer_phone or "", row.service_no or "", row.address_text or "",
-                row.owner_org.name if row.owner_org else "", row.assignee.real_name if row.assignee else "",
+                csv_safe(row.order_no), csv_safe(row.external_order_id), row.source_system, csv_safe(row.title), csv_safe(row.order_type), row.status,
+                row.priority, csv_safe(row.customer_name), csv_safe(row.customer_phone), csv_safe(row.service_no), csv_safe(row.address_text),
+                csv_safe(row.owner_org.name if row.owner_org else ""), csv_safe(row.assignee.real_name if row.assignee else ""),
                 row.created_at.isoformat() if row.created_at else "", row.updated_at.isoformat() if row.updated_at else "",
             ])
         with zipfile.ZipFile(storage_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr("work_orders.csv", "\ufeff" + csv_buffer.getvalue())
-            manifest = {"job_uid": job.job_uid, "exported_at": datetime.utcnow().isoformat(), "work_order_count": len(rows), "includes_photos": export_type == "work_orders_with_photos"}
+            manifest = {"job_uid": job.job_uid, "exported_at": datetime.utcnow().isoformat(), "work_order_count": len(rows), "includes_photos": export_type == "work_orders_with_photos", "photo_bytes": export_photo_bytes}
             archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
             if export_type == "work_orders_with_photos":
                 order_ids = [row.id for row in rows]
@@ -232,13 +245,12 @@ def create_export_job(user, payload):
                     raw = source_path.read_bytes()
                     if hashlib.sha256(raw).hexdigest() != photo.file.sha256:
                         raise ValueError(f"installation photo integrity check failed: {photo.id}")
-                    safe_name = Path(photo.file.original_name or f"photo-{photo.id}").name
+                    safe_name = Path((photo.file.original_name or f"photo-{photo.id}").replace("\\", "/")).name.replace("\x00", "")
                     archive.writestr(f"photos/{order.order_no}/round-{photo.attempt.round_no}/{photo.agent_code or 'other'}/{photo.id}-{safe_name}", raw)
-        raw_archive = storage_path.read_bytes()
         file_object = FileObject(
             file_uid=str(uuid4()), biz_type="work_order_export", storage_driver="local", storage_key=storage_key,
             original_name=f"work-orders-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.zip", mime_type="application/zip",
-            size_bytes=len(raw_archive), sha256=hashlib.sha256(raw_archive).hexdigest(), uploader_id=user.id,
+            size_bytes=storage_path.stat().st_size, sha256=file_sha256(storage_path), uploader_id=user.id,
             metadata_json={"job_uid": job.job_uid, "work_order_count": len(rows), "export_type": export_type},
         )
         db.session.add(file_object)
@@ -273,9 +285,22 @@ def export_file_for_user(user, job_uid):
     if file_object is None:
         return None, None, "export file not found"
     path = Path(current_app.config["UPLOAD_DIR"]) / file_object.storage_key
-    if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != file_object.sha256:
+    if not path.is_file() or file_sha256(path) != file_object.sha256:
         return None, None, "export file not found"
     return path, file_object, None
+
+
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def csv_safe(value):
+    text = str(value or "")
+    return f"'{text}" if text.startswith(("=", "+", "-", "@", "\t", "\r")) else text
 
 
 def work_order_detail(user, work_order_id):

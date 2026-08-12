@@ -30,4 +30,5 @@ class Config:
     OSS_VERIFY_TIMEOUT = int(os.getenv("OSS_VERIFY_TIMEOUT", "8"))
 
     UPLOAD_DIR = os.getenv("UPLOAD_DIR", str(BASE_DIR / "uploads"))
+    WORK_ORDER_EXPORT_MAX_BYTES = int(os.getenv("WORK_ORDER_EXPORT_MAX_BYTES", str(512 * 1024 * 1024)))
     AVATAR_MAX_BYTES = int(os.getenv("AVATAR_MAX_BYTES", str(2 * 1024 * 1024)))

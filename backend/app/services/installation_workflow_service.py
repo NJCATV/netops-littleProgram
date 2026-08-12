@@ -89,9 +89,15 @@ def upload_installation_photo(user, work_order_id, uploaded_file, form):
     extension, mime_type = detect_image(raw)
     if extension is None:
         return None, "photo file type is invalid"
-    existing = InstallationPhoto.query.filter_by(attempt_id=attempt.id, agent_code=agent_code, evidence_status="active").count()
+    active_query = InstallationPhoto.query.filter_by(attempt_id=attempt.id, agent_code=agent_code, evidence_status="active")
+    existing = active_query.count()
+    replace_active = str(form.get("replace_active") or "").strip().lower() in {"1", "true", "yes"}
+    if replace_active:
+        active_query.update({"evidence_status": "superseded"}, synchronize_session=False)
+        existing = 0
     if existing >= 5:
         return None, "each agent accepts at most five photos per attempt"
+    last_slot = db.session.query(db.func.max(InstallationPhoto.sort_order)).filter_by(attempt_id=attempt.id, agent_code=agent_code).scalar()
     case = attempt.installation_case
     storage_key = f"installations/{case.case_uid}/{attempt.attempt_uid}/{uuid4().hex}.{extension}"
     storage_path = Path(current_app.config["UPLOAD_DIR"]) / storage_key
@@ -132,7 +138,7 @@ def upload_installation_photo(user, work_order_id, uploaded_file, form):
             file_id=file_object.id,
             agent_code=agent_code,
             photo_role=photo_role,
-            sort_order=existing,
+            sort_order=(last_slot if last_slot is not None else -1) + 1,
             evidence_status="active",
             captured_at=captured_at,
             longitude=longitude,
@@ -168,11 +174,20 @@ def submit_installation_attempt(user, work_order_id):
         return None, error
     latest_runs = {}
     for run in InstallationAiRun.query.filter_by(attempt_id=attempt.id).order_by(InstallationAiRun.id.desc()).all():
-        if run.agent_code not in latest_runs and run.status == "success":
+        if run.agent_code not in latest_runs:
             latest_runs[run.agent_code] = run
-    missing = sorted(AGENT_CODES - set(latest_runs))
+    missing = sorted(code for code in AGENT_CODES if code not in latest_runs or latest_runs[code].status != "success")
     if missing:
         return None, f"installation agents are incomplete: {','.join(missing)}"
+    stale = []
+    for code, run in latest_runs.items():
+        newest_photo_at = db.session.query(db.func.max(InstallationPhoto.created_at)).filter_by(
+            attempt_id=attempt.id, agent_code=code, evidence_status="active"
+        ).scalar()
+        if newest_photo_at is None or run.created_at < newest_photo_at:
+            stale.append(code)
+    if stale:
+        return None, f"installation agents must be rerun after evidence changes: {','.join(sorted(stale))}"
     scores = [float(run.score or 0) for run in latest_runs.values()]
     passed = all(run.passed is True for run in latest_runs.values())
     case = attempt.installation_case

@@ -63,7 +63,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { getStoredUser, logout, requireLogin, resolveAssetUrl, uploadAvatar } from '../../api/auth'
+import { getStoredUser, logout, requireLogin, resolveAssetUrl, saveSession, uploadAvatar } from '../../api/auth'
 import { messageLabel, ossStatusLabel, roleLabel, statusLabel, userTypeLabel } from '../../utils/labels'
 import { syncCustomTabBar } from '../../utils/tab-bar'
 
@@ -71,6 +71,9 @@ const user = ref(getStoredUser())
 const avatarLoadFailed = ref(false)
 const avatarVersion = ref(Date.now())
 const localAvatarSrc = ref('')
+let profileRequestSequence = 0
+let avatarCheckSequence = 0
+let avatarUploadInProgress = false
 const initial = computed(() => (user.value.real_name || '用').slice(0, 1))
 const avatarSrc = computed(() => {
   if (localAvatarSrc.value) return localAvatarSrc.value
@@ -88,8 +91,16 @@ const AVATAR_TYPES = new Set(['jpg', 'jpeg', 'png', 'webp'])
 onShow(() => {
   syncCustomTabBar(2)
   avatarLoadFailed.value = false
+  if (avatarUploadInProgress) return
+  const requestSequence = ++profileRequestSequence
   requireLogin()
     .then((data) => {
+      if (requestSequence !== profileRequestSequence || avatarUploadInProgress) {
+        // requireLogin/getMe persists its response before resolving. Restore the
+        // current profile when this response lost the race with an avatar upload.
+        saveSession({ user: user.value })
+        return
+      }
       user.value = data.user || getStoredUser()
     })
     .catch((error) => {
@@ -111,6 +122,10 @@ async function onChooseAvatar(event) {
   const filePath = event?.detail?.avatarUrl
   if (!filePath) return
 
+  avatarUploadInProgress = true
+  profileRequestSequence += 1
+  avatarCheckSequence += 1
+  avatarLoadFailed.value = false
   localAvatarSrc.value = filePath
   uni.showLoading({ title: '处理头像' })
   let uploaded = false
@@ -123,6 +138,7 @@ async function onChooseAvatar(event) {
     user.value = data.user || getStoredUser()
     avatarLoadFailed.value = false
     avatarVersion.value = Date.now()
+    avatarCheckSequence += 1
     const remoteUrl = versionedAvatarUrl(user.value.avatar_url)
     await getImageMeta(remoteUrl)
     localAvatarSrc.value = ''
@@ -134,6 +150,8 @@ async function onChooseAvatar(event) {
     const fallback = uploaded ? '头像已上传，但服务器图片无法读取，请联系管理员' : '头像上传失败，请重试'
     const title = uploaded ? fallback : messageLabel(error.message || fallback)
     uni.showToast({ title, icon: 'none', duration: 3000 })
+  } finally {
+    avatarUploadInProgress = false
   }
 }
 
@@ -177,9 +195,18 @@ function versionedAvatarUrl(url) {
   return `${resolved}${resolved.includes('?') ? '&' : '?'}v=${avatarVersion.value}`
 }
 
-function onAvatarError() {
-  if (avatarLoadFailed.value) return
-  avatarLoadFailed.value = true
+async function onAvatarError() {
+  if (avatarLoadFailed.value || localAvatarSrc.value) return
+  const failedUrl = avatarSrc.value
+  if (!failedUrl) return
+  const checkSequence = ++avatarCheckSequence
+  try {
+    await getImageMeta(failedUrl)
+  } catch (error) {
+    if (checkSequence !== avatarCheckSequence) return
+    if (localAvatarSrc.value || avatarSrc.value !== failedUrl) return
+    avatarLoadFailed.value = true
+  }
 }
 
 function onLogout() {

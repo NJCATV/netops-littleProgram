@@ -3,7 +3,7 @@ from io import BytesIO
 from pathlib import Path
 
 from flask import Blueprint, current_app, g, request, send_from_directory
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from app.extensions import db
 from app.services.log_service import add_operation_log
@@ -42,6 +42,11 @@ def upload_avatar_response():
         return fail(BAD_REQUEST, "avatar dimensions are too small")
     if width > AVATAR_MAX_DIMENSION or height > AVATAR_MAX_DIMENSION:
         return fail(BAD_REQUEST, "avatar dimensions are too large")
+    if width != height:
+        return fail(BAD_REQUEST, "avatar must be square")
+
+    raw = normalize_avatar(raw)
+    extension = "jpg"
 
     avatar_dir = Path(current_app.config["UPLOAD_DIR"]) / "avatars"
     avatar_dir.mkdir(parents=True, exist_ok=True)
@@ -87,6 +92,21 @@ def inspect_avatar(raw):
     except (UnidentifiedImageError, Image.DecompressionBombError, OSError, OverflowError, SyntaxError, ValueError):
         return None
     return extension, int(width), int(height)
+
+
+def normalize_avatar(raw):
+    with Image.open(BytesIO(raw)) as source:
+        image = ImageOps.exif_transpose(source)
+        image.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+        if image.mode in ("RGBA", "LA") or "transparency" in image.info:
+            alpha = image.convert("RGBA")
+            normalized = Image.new("RGB", alpha.size, "white")
+            normalized.paste(alpha, mask=alpha.getchannel("A"))
+        else:
+            normalized = image.convert("RGB")
+        output = BytesIO()
+        normalized.save(output, format="JPEG", quality=88, optimize=True)
+        return output.getvalue()
 
 
 def remove_old_avatar(avatar_url):

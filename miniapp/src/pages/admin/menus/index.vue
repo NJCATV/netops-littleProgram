@@ -2,7 +2,7 @@
   <view class="page manage-page">
     <view class="compact-bar">
       <view>
-        <view class="bar-title">功能管理</view>
+        <view class="bar-title">权限配置</view>
         <view class="bar-subtitle">共 {{ menus.length }} 个功能</view>
       </view>
       <button class="add-button" @tap="openCreate"><text>+</text></button>
@@ -26,9 +26,10 @@
         <view class="path-text">{{ item.path || '未配置页面路径' }}</view>
         <view class="action-row">
           <button class="secondary-button mini-button" @tap="openEdit(item)">编辑</button>
-          <button class="secondary-button mini-button" @tap="toggleEnabled(item)">
+          <button v-if="item.menu_key !== 'menu.manage'" class="secondary-button mini-button" @tap="toggleEnabled(item)">
             {{ item.enabled ? '禁用' : '启用' }}
           </button>
+          <button v-if="item.menu_key !== 'menu.manage'" class="secondary-button mini-button delete-button" @tap="confirmDelete(item)">删除</button>
         </view>
       </view>
     </view>
@@ -89,7 +90,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { createMenu, disableMenu, enableMenu, listMenus, updateMenu } from '../../../api/adminMenus'
+import { createMenu, deleteMenu, disableMenu, enableMenu, listMenus, updateMenu } from '../../../api/adminMenus'
 import { requireLogin } from '../../../api/auth'
 import { invalidateMenuCache } from '../../../api/menu'
 import { enabledLabel, messageLabel, option, roleLabel, userTypeLabel } from '../../../utils/labels'
@@ -175,8 +176,8 @@ function onUserTypeChange(event) {
 }
 
 function saveMenu() {
-  if (!form.menu_key || !form.name || !form.icon || !form.group_name) {
-    toast('请填写编码、名称、图标和分组')
+  if (!form.menu_key || !form.name || !form.icon || !form.path || !form.group_name) {
+    toast('请填写编码、名称、图标、页面路径和分组')
     return
   }
 
@@ -194,6 +195,24 @@ function saveMenu() {
     .finally(() => {
       saving.value = false
     })
+}
+
+function confirmDelete(item) {
+  uni.showModal({
+    title: '删除功能',
+    content: `确认删除“${item.name}”？删除后该入口和对应接口将立即不可用。`,
+    confirmColor: '#c9352b',
+    success(result) {
+      if (!result.confirm) return
+      deleteMenu(item.id)
+        .then(() => {
+          invalidateMenuCache()
+          toast('已删除')
+          loadMenus()
+        })
+        .catch((error) => toast(error.message))
+    }
+  })
 }
 
 function toggleEnabled(item) {
@@ -329,6 +348,11 @@ function toast(title) {
   min-height: 54rpx;
   line-height: 54rpx;
   font-size: 24rpx;
+}
+
+.delete-button {
+  border-color: #efc7c4;
+  color: #c9352b;
 }
 
 .empty-panel {

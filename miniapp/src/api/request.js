@@ -84,4 +84,7 @@ export function toQuery(params = {}) {
 export function clearSessionStorage() {
   uni.removeStorageSync('access_token')
   uni.removeStorageSync('current_user')
+  uni.removeStorageSync('workbench_apps_cache_v1')
+  uni.removeStorageSync('workbench_apps_cache_v2')
+  uni.removeStorageSync('workbench_apps_cache_v3')
 }

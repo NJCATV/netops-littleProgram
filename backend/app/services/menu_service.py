@@ -1,10 +1,12 @@
 from app.extensions import db
 from app.models import AppMenu
 from app.services.log_service import add_operation_log
+from app.services.workbench_service import menu_sort_key
 
 
 ROLE_CODES = {"normal_user", "org_admin", "super_admin"}
 USER_TYPES = {"internal", "external", "system", "all"}
+PROTECTED_MENU_KEYS = {"menu.manage"}
 
 
 def ensure_super_admin(actor):
@@ -18,7 +20,7 @@ def list_menus(actor):
     if error:
         return None, error
 
-    menus = AppMenu.query.order_by(AppMenu.group_name.asc(), AppMenu.sort_order.asc(), AppMenu.id.asc()).all()
+    menus = sorted(AppMenu.query.all(), key=menu_sort_key)
     return {"items": [menu.to_dict() for menu in menus]}, None
 
 
@@ -36,7 +38,7 @@ def validate_menu_payload(payload, partial=False):
     enabled = payload.get("enabled", True)
     sort_order = payload.get("sort_order", 0)
 
-    required = ("menu_key", "name", "icon", "group_name")
+    required = ("menu_key", "name", "icon", "path", "group_name")
     for key in required:
         if not fields[key] and not partial:
             return None, f"{key} is required"
@@ -73,6 +75,24 @@ def create_menu(actor, request, payload):
     return menu.to_dict(), None
 
 
+def delete_menu(actor, request, menu_id):
+    error = ensure_super_admin(actor)
+    if error:
+        return None, error
+
+    menu = db.session.get(AppMenu, menu_id)
+    if menu is None:
+        return None, "menu not found"
+    if menu.menu_key in PROTECTED_MENU_KEYS:
+        return None, "protected menu cannot be deleted"
+
+    result = {"deleted_id": menu.id, "menu_key": menu.menu_key, "name": menu.name}
+    add_operation_log(request, actor, "admin.menus", "delete", "menu", menu.id, menu.menu_key)
+    db.session.delete(menu)
+    db.session.commit()
+    return result, None
+
+
 def update_menu(actor, request, menu_id, payload):
     error = ensure_super_admin(actor)
     if error:
@@ -87,6 +107,10 @@ def update_menu(actor, request, menu_id, payload):
     data, error = validate_menu_payload(merged)
     if error:
         return None, error
+    if menu.menu_key in PROTECTED_MENU_KEYS and (
+        data["menu_key"] != menu.menu_key or not data["enabled"]
+    ):
+        return None, "protected menu cannot be changed"
 
     owner = AppMenu.query.filter(AppMenu.menu_key == data["menu_key"], AppMenu.id != menu.id).first()
     if owner:
@@ -107,6 +131,8 @@ def set_menu_enabled(actor, request, menu_id, enabled):
     menu = db.session.get(AppMenu, menu_id)
     if menu is None:
         return None, "menu not found"
+    if not enabled and menu.menu_key in PROTECTED_MENU_KEYS:
+        return None, "protected menu cannot be disabled"
     menu.enabled = enabled
     add_operation_log(request, actor, "admin.menus", "enable" if enabled else "disable", "menu", menu.id, menu.menu_key)
     db.session.commit()

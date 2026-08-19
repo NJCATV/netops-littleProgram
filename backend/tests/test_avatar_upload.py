@@ -85,7 +85,10 @@ class AvatarUploadTest(unittest.TestCase):
         filename = Path(avatar_url).name
         asset = self.client.get(f"/api/netops2026/files/avatars/{filename}")
         self.assertEqual(asset.status_code, 200)
-        self.assertEqual(asset.mimetype, "image/png")
+        self.assertEqual(asset.mimetype, "image/jpeg")
+        with Image.open(io.BytesIO(asset.data)) as saved:
+            self.assertEqual(saved.size, (256, 256))
+            self.assertEqual(saved.format, "JPEG")
         asset.close()
 
     def test_image_dimensions_are_enforced(self):
@@ -96,6 +99,10 @@ class AvatarUploadTest(unittest.TestCase):
         too_large = self.upload(image_file(4097, 128))
         self.assertEqual(too_large.status_code, 400)
         self.assertEqual(too_large.get_json()["message"], "avatar dimensions are too large")
+
+        not_square = self.upload(image_file(256, 300))
+        self.assertEqual(not_square.status_code, 400)
+        self.assertEqual(not_square.get_json()["message"], "avatar must be square")
 
     def test_declared_extension_cannot_bypass_image_decode_or_size_limit(self):
         invalid = self.upload(io.BytesIO(b"not an image"), "avatar.png")

@@ -31,6 +31,10 @@
   color: #1769e8;
 }
 
+.tab-item.tab-pressed {
+  background: rgba(23, 105, 232, 0.06);
+}
+
 .tab-label {
   margin-top: 7rpx;
   font-size: 20rpx;

@@ -1,6 +1,6 @@
 from flask import Blueprint, g, request
 
-from app.services.menu_service import create_menu, list_menus, set_menu_enabled, update_menu
+from app.services.menu_service import create_menu, delete_menu, list_menus, set_menu_enabled, update_menu
 from app.utils.decorators import login_required
 from app.utils.responses import BAD_REQUEST, FORBIDDEN, NOT_FOUND, fail, success
 
@@ -49,3 +49,9 @@ def enable_route(menu_id):
 @login_required
 def disable_route(menu_id):
     return service_response(*set_menu_enabled(g.current_user, request, menu_id, False))
+
+
+@admin_menus_bp.delete("/<int:menu_id>")
+@login_required
+def delete_route(menu_id):
+    return service_response(*delete_menu(g.current_user, request, menu_id))

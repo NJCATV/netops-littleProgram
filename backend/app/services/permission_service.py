@@ -69,10 +69,9 @@ def has_any_menu_access(user, menu_keys):
     from app.models import AppMenu
 
     menus = AppMenu.query.filter(AppMenu.menu_key.in_(tuple(menu_keys))).all()
-    # Older installations and isolated tests may not have the newly introduced
-    # menu row yet.  Preserve their existing behavior until the seed is applied;
-    # once a row exists, its enabled/role/audience fields become authoritative.
-    return not menus or any(menu_is_available(user, menu) for menu in menus)
+    # Known feature routes fail closed. Deleting a stale menu must not turn its
+    # API into an unguarded route, and a partially applied seed must not grant it.
+    return bool(menus) and any(menu_is_available(user, menu) for menu in menus)
 
 
 def next_action_for_user(user):

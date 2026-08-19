@@ -12,6 +12,7 @@ from cryptography.fernet import Fernet
 from app import create_app
 from app.extensions import db
 from app.models import (
+    AppMenu,
     FileObject,
     InstallationAttempt,
     InstallationAiRun,
@@ -68,6 +69,17 @@ class UnifiedWorkOrderApiTest(unittest.TestCase):
             oss_bind_status="unbound",
         )
         db.session.add(self.admin)
+        db.session.add(AppMenu(
+            menu_key="netops.work_orders",
+            name="智能装维",
+            icon="work-order",
+            path="/pages/work-orders/index",
+            group_name="施工服务",
+            min_role="normal_user",
+            user_type="internal",
+            enabled=True,
+            sort_order=10,
+        ))
         db.session.commit()
         self.headers = {"Authorization": f"Bearer {create_access_token(self.admin.id)}"}
         self.client = self.app.test_client()

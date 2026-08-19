@@ -1,12 +1,12 @@
 <template>
   <view class="page my-page">
     <view class="profile-head" @tap="chooseAvatar">
-      <image v-if="avatarSrc" class="avatar avatar-image" :src="avatarSrc" mode="aspectFill" @error="avatarLoadFailed = true" />
+      <image v-if="avatarSrc" class="avatar avatar-image" :src="avatarSrc" mode="aspectFill" @error="onAvatarError" />
       <view v-else class="avatar">{{ initial }}</view>
       <view class="profile-main">
         <view class="name">{{ user.real_name || '智维用户' }}</view>
         <view class="meta">{{ user.org_name || '未分配组织' }}｜{{ roleLabel(user.role_code) }}</view>
-        <view class="avatar-tip">点击更换 · 128～4096 像素 · 不超过 2MB</view>
+        <view class="avatar-tip">点击选择照片并裁切 · 上传不超过 2MB</view>
       </view>
     </view>
 
@@ -67,8 +67,14 @@ import { syncCustomTabBar } from '../../utils/tab-bar'
 
 const user = ref(getStoredUser())
 const avatarLoadFailed = ref(false)
+const avatarVersion = ref(Date.now())
 const initial = computed(() => (user.value.real_name || '用').slice(0, 1))
-const avatarSrc = computed(() => avatarLoadFailed.value ? '' : resolveAssetUrl(user.value.avatar_url))
+const avatarSrc = computed(() => {
+  if (avatarLoadFailed.value) return ''
+  const url = resolveAssetUrl(user.value.avatar_url)
+  if (!url) return ''
+  return `${url}${url.includes('?') ? '&' : '?'}v=${avatarVersion.value}`
+})
 
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024
 const AVATAR_MIN_DIMENSION = 128
@@ -98,27 +104,34 @@ function goBindOss() {
 }
 
 function chooseAvatar() {
-  uni.chooseImage({
+  uni.chooseMedia({
     count: 1,
-    sizeType: ['compressed'],
+    mediaType: ['image'],
     sourceType: ['album', 'camera'],
     async success(result) {
-      const filePath = result.tempFilePaths && result.tempFilePaths[0]
+      const selectedFile = result.tempFiles && result.tempFiles[0]
+      const filePath = selectedFile?.tempFilePath || selectedFile?.path
       if (!filePath) {
         return
       }
-      const selectedFile = result.tempFiles && result.tempFiles[0]
+      uni.showLoading({ title: '准备裁切' })
+      let uploadPath = ''
       try {
-        await validateAvatar(filePath, selectedFile?.size)
+        const croppedPath = await cropAvatar(filePath)
+        uploadPath = await compressAvatar(croppedPath)
+        await validateAvatar(uploadPath)
       } catch (error) {
-        uni.showToast({ title: error.message, icon: 'none' })
+        uni.hideLoading()
+        if (!error.cancelled) uni.showToast({ title: error.message, icon: 'none' })
         return
       }
+      uni.hideLoading()
       uni.showLoading({ title: '上传中' })
-      uploadAvatar(filePath)
+      uploadAvatar(uploadPath)
         .then((data) => {
           user.value = data.user || getStoredUser()
           avatarLoadFailed.value = false
+          avatarVersion.value = Date.now()
           uni.hideLoading()
           uni.showToast({ title: '头像已更新', icon: 'success' })
         })
@@ -130,36 +143,64 @@ function chooseAvatar() {
   })
 }
 
-function validateAvatar(filePath, selectedSize) {
-  if (Number(selectedSize) > AVATAR_MAX_BYTES) {
-    return Promise.reject(new Error('头像不能超过 2MB'))
-  }
+function cropAvatar(filePath) {
   return new Promise((resolve, reject) => {
-    uni.getImageInfo({
+    // #ifdef MP-WEIXIN
+    if (typeof wx !== 'undefined' && typeof wx.cropImage === 'function') {
+      wx.cropImage({
+        src: filePath,
+        cropScale: '1:1',
+        success: (result) => resolve(result.tempFilePath),
+        fail: (error) => {
+          const cancelled = /cancel/i.test(error.errMsg || '')
+          reject(Object.assign(new Error(cancelled ? '已取消裁切' : '头像裁切失败，请重试'), { cancelled }))
+        }
+      })
+      return
+    }
+    // #endif
+    reject(new Error('当前微信版本不支持头像裁切，请升级微信后重试'))
+  })
+}
+
+function compressAvatar(filePath) {
+  return new Promise((resolve, reject) => {
+    uni.compressImage({
       src: filePath,
-      success(info) {
-        const width = Number(info.width || 0)
-        const height = Number(info.height || 0)
-        const type = String(info.type || '').toLowerCase()
-        if (type && !AVATAR_TYPES.has(type)) {
-          reject(new Error('仅支持 JPG、PNG 或 WebP'))
-          return
-        }
-        if (width < AVATAR_MIN_DIMENSION || height < AVATAR_MIN_DIMENSION) {
-          reject(new Error('头像宽高不能小于 128 像素'))
-          return
-        }
-        if (width > AVATAR_MAX_DIMENSION || height > AVATAR_MAX_DIMENSION) {
-          reject(new Error('头像宽高不能超过 4096 像素'))
-          return
-        }
-        resolve()
-      },
-      fail() {
-        reject(new Error('无法读取图片，请重新选择'))
-      }
+      quality: 82,
+      compressedWidth: 1024,
+      compressedHeight: 1024,
+      success: (result) => resolve(result.tempFilePath),
+      fail: () => reject(new Error('头像处理失败，请重新选择'))
     })
   })
+}
+
+function validateAvatar(filePath) {
+  return Promise.all([getImageMeta(filePath), getFileSize(filePath)]).then(([info, size]) => {
+    const width = Number(info.width || 0)
+    const height = Number(info.height || 0)
+    const type = String(info.type || '').toLowerCase()
+    if (type && !AVATAR_TYPES.has(type)) throw new Error('仅支持 JPG、PNG 或 WebP')
+    if (Number(size) > AVATAR_MAX_BYTES) throw new Error('头像处理后仍超过 2MB，请换一张照片')
+    if (width < AVATAR_MIN_DIMENSION || height < AVATAR_MIN_DIMENSION) throw new Error('头像宽高不能小于 128 像素')
+    if (width > AVATAR_MAX_DIMENSION || height > AVATAR_MAX_DIMENSION) throw new Error('头像宽高不能超过 4096 像素')
+    if (width !== height) throw new Error('请将头像裁切为正方形')
+  })
+}
+
+function getImageMeta(filePath) {
+  return new Promise((resolve, reject) => uni.getImageInfo({ src: filePath, success: resolve, fail: () => reject(new Error('无法读取图片，请重新选择')) }))
+}
+
+function getFileSize(filePath) {
+  return new Promise((resolve, reject) => uni.getFileInfo({ filePath, success: (result) => resolve(result.size), fail: () => reject(new Error('无法读取图片大小，请重新选择')) }))
+}
+
+function onAvatarError() {
+  if (avatarLoadFailed.value) return
+  avatarLoadFailed.value = true
+  uni.showToast({ title: '头像加载失败，请重新上传', icon: 'none' })
 }
 
 function onLogout() {

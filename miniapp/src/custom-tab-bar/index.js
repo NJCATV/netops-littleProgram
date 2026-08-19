@@ -9,23 +9,34 @@ Component({
   },
   lifetimes: {
     attached() {
+      this.syncSelected()
+    }
+  },
+  pageLifetimes: {
+    show() {
+      this.syncSelected()
+    }
+  },
+  methods: {
+    syncSelected() {
       const pages = getCurrentPages()
       const current = pages[pages.length - 1]
       const route = current && `/${current.route}`
       const selected = this.data.tabs.findIndex((item) => item.pagePath === route)
       if (selected >= 0) this.setData({ selected })
-    }
-  },
-  methods: {
+    },
     switchTab(event) {
       const index = Number(event.currentTarget.dataset.index)
       const item = this.data.tabs[index]
-      if (!item || index === this.data.selected) return
-      const previous = this.data.selected
-      this.setData({ selected: index })
+      if (!item) return
+      if (index === this.data.selected) {
+        this.syncSelected()
+        return
+      }
       wx.switchTab({
         url: item.pagePath,
-        fail: () => this.setData({ selected: previous })
+        success: () => this.syncSelected(),
+        fail: () => this.syncSelected()
       })
     }
   }

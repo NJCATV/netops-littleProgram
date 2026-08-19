@@ -33,7 +33,7 @@
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getStoredUser, requireLogin, resolveAssetUrl } from '../../api/auth'
-import { listApps, readMenuCache, writeMenuCache } from '../../api/menu'
+import { listApps } from '../../api/menu'
 import { messageLabel, roleLabel } from '../../utils/labels'
 import { syncCustomTabBar } from '../../utils/tab-bar'
 
@@ -82,12 +82,11 @@ onShow(() => { syncCustomTabBar(0); load() })
 
 function load() {
   avatarLoadFailed.value = false
-  const cached = readMenuCache()
-  if (cached?.groups?.length) { user.value = getStoredUser() || cached.user || {}; groups.value = cached.groups }
-  loading.value = !groups.value.length
+  groups.value = []
+  loading.value = true
   requireLogin().then((data) => { user.value = data.user || getStoredUser(); return listApps() }).then((data) => {
     const items = data.groups?.length ? data.groups.flatMap((group) => group.items || []) : (data.items || [])
-    groups.value = organizeGroups(items); writeMenuCache({ user: user.value, groups: groups.value })
+    groups.value = organizeGroups(items)
   }).catch((error) => { if (error.message !== '未登录') uni.showToast({ title: messageLabel(error.message), icon: 'none' }) }).finally(() => { loading.value = false })
 }
 function pathFor(item) { const raw = String(item.path || '').trim(); const bare = raw.split(/[?#]/)[0]; const normalized = bare ? (bare.startsWith('/') ? bare : `/${bare}`) : ''; const name = String(item.name || '').replace(/[\s/（）()_-]/g, ''); return routeMap[normalized] || keyMap[item.menu_key] || nameMap[name] || raw }

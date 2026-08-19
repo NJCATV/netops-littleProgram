@@ -31,7 +31,7 @@ const confirmPassword = ref('')
 const submitting = ref(false)
 
 function skip() {
-  uni.switchTab({ url: '/pages/menu/index' })
+  uni.switchTab({ url: '/pages/workbench/index' })
 }
 
 function submit() {

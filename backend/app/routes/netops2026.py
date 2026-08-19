@@ -26,6 +26,7 @@ from werkzeug.security import check_password_hash
 
 from app.services.auth_service import change_password as base_change_password, login as base_login
 from app.services.permission_service import next_action_for_user
+from app.services.workbench_service import visible_menus_for_user
 from app.extensions import db
 from app.models import AppMenu, OperationLog, OrgUnit, User
 from app.utils.decorators import login_required
@@ -1870,20 +1871,18 @@ def aiops_proxy_route(path):
 @login_required
 def navigation_route():
     """Return enabled menus that the current role and user type may access."""
-    role_rank = {"normal_user": 1, "org_admin": 2, "super_admin": 3}
-    user_role = getattr(g.current_user, "role_code", "normal_user") or "normal_user"
-    user_type = getattr(g.current_user, "user_type", "internal") or "internal"
-    visible = []
-    menus = AppMenu.query.filter(AppMenu.enabled.is_(True)).order_by(AppMenu.group_name.asc(), AppMenu.sort_order.asc(), AppMenu.id.asc()).all()
-    for menu in menus:
-        if menu.menu_key in AIOPS_ENTRY_KEYS and not aiops_page_audience_allowed():
-            continue
-        if role_rank.get(user_role, 1) < role_rank.get(menu.min_role or "normal_user", 1):
-            continue
-        if user_role != "super_admin" and menu.user_type not in (None, "", "all", user_type):
-            continue
-        visible.append(menu.to_dict())
-    return success({"items": visible})
+    data = visible_menus_for_user(g.current_user)
+    data["items"] = [
+        item for item in data["items"]
+        if item["menu_key"] not in AIOPS_ENTRY_KEYS or aiops_page_audience_allowed()
+    ]
+    visible_keys = {item["menu_key"] for item in data["items"]}
+    data["groups"] = [
+        {"group_name": group["group_name"], "items": [item for item in group["items"] if item["menu_key"] in visible_keys]}
+        for group in data["groups"]
+    ]
+    data["groups"] = [group for group in data["groups"] if group["items"]]
+    return success(data)
 
 
 @netops2026_bp.get("/system/audit")

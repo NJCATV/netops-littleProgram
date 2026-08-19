@@ -36,3 +36,10 @@ export function disableMenu(id) {
     method: 'POST'
   })
 }
+
+export function deleteMenu(id) {
+  return request({
+    url: `/admin/menus/${id}`,
+    method: 'DELETE'
+  })
+}

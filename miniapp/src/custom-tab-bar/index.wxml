@@ -1,6 +1,6 @@
 <view class="tab-shell">
   <view class="tab-bar">
-    <view wx:for="{{tabs}}" wx:key="pagePath" class="tab-item {{item.type === 'ai' ? 'tab-ai' : ''}} {{selected === index ? 'active' : ''}}" data-index="{{index}}" bindtap="switchTab">
+    <view wx:for="{{tabs}}" wx:key="pagePath" class="tab-item {{item.type === 'ai' ? 'tab-ai' : ''}} {{selected === index ? 'active' : ''}}" hover-class="tab-pressed" hover-stay-time="90" data-index="{{index}}" bindtap="switchTab">
       <block wx:if="{{item.type === 'menu'}}">
         <view class="menu-icon"><view class="menu-dot"></view><view class="menu-dot"></view><view class="menu-dot"></view><view class="menu-dot"></view></view>
       </block>

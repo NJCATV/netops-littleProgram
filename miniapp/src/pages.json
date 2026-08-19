@@ -45,7 +45,7 @@
     {
       "path": "pages/admin/menus/index",
       "style": {
-        "navigationBarTitleText": "功能管理"
+        "navigationBarTitleText": "权限配置"
       }
     },
     {
@@ -58,12 +58,6 @@
       "path": "pages/admin/audit/index",
       "style": {
         "navigationBarTitleText": "日志查看"
-      }
-    },
-    {
-      "path": "pages/admin/servers/index",
-      "style": {
-        "navigationBarTitleText": "服务器管理"
       }
     },
     {

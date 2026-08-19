@@ -30,6 +30,8 @@ DEFAULT_MENUS = [
     ("netops.admin", "网管配置", "organization", "/pages/netops/admin/index", "网管", "org_admin", 120),
     ("netops.work_orders", "智能装维工单", "work-order", "/pages/work-orders/index", "工单", "normal_user", 10),
     ("netops.aiops_admin", "AIOps系统管理", "settings", "/pages/netops/aiops-admin/index", "系统管理", "org_admin", 20),
+    ("netops.system_audit", "系统审计与使用分析", "audit", "/pages/netops/system-audit/index", "系统管理", "super_admin", 30),
+    ("netops.infrastructure", "基础设施监控", "infrastructure", "/pages/netops/infrastructure/index", "系统管理", "super_admin", 40),
     ("duty.view", "值班表", "calendar", "", "便捷工具", "normal_user", 10),
     ("server.manage", "服务器管理", "server", "/pages/admin/servers/index", "便捷工具", "normal_user", 20),
     ("data.query", "资料查询", "folder-search", "", "全部功能", "normal_user", 50),

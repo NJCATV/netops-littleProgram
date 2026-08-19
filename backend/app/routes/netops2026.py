@@ -1874,7 +1874,7 @@ def navigation_route():
     user_role = getattr(g.current_user, "role_code", "normal_user") or "normal_user"
     user_type = getattr(g.current_user, "user_type", "internal") or "internal"
     visible = []
-    menus = AppMenu.query.filter(AppMenu.enabled.is_(True), AppMenu.menu_key.like("netops.%")).order_by(AppMenu.group_name.asc(), AppMenu.sort_order.asc(), AppMenu.id.asc()).all()
+    menus = AppMenu.query.filter(AppMenu.enabled.is_(True)).order_by(AppMenu.group_name.asc(), AppMenu.sort_order.asc(), AppMenu.id.asc()).all()
     for menu in menus:
         if menu.menu_key in AIOPS_ENTRY_KEYS and not aiops_page_audience_allowed():
             continue

@@ -5,6 +5,7 @@ from flask import g, request
 
 from app.extensions import db
 from app.models import User
+from app.services.permission_service import has_any_menu_access, required_menu_keys
 from app.utils.jwt import decode_access_token
 from app.utils.responses import UNAUTHORIZED, fail
 
@@ -40,6 +41,9 @@ def login_required(view_func):
             return fail(UNAUTHORIZED, "user unavailable", http_status=401)
 
         g.current_user = user
+        menu_keys = required_menu_keys(request.path)
+        if menu_keys and not has_any_menu_access(user, menu_keys):
+            return fail(UNAUTHORIZED, "当前账号未启用该功能", http_status=403)
         return view_func(*args, **kwargs)
 
     return wrapper

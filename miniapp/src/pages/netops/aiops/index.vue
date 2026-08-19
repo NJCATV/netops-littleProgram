@@ -193,7 +193,7 @@ function openFinding(item) { selectedFinding.value = item }
 function copySuggestion(item) {
   uni.setClipboardData({ data: detailText(actionValue(item)), success: () => uni.showToast({ title: '建议已复制', icon: 'success' }) })
 }
-function openAssistant() { uni.navigateTo({ url: '/pages/netops/ai-assistant/index' }) }
+function openAssistant() { uni.switchTab({ url: '/pages/netops/ai-assistant/index' }) }
 function formatTime(value) {
   if (!value) return '--'
   const date = new Date(String(value))

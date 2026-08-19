@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 from app.models import AppMenu
-from app.services.permission_service import has_role
+from app.services.permission_service import menu_is_available
 
 
 def visible_menus_for_user(user):
@@ -13,7 +13,7 @@ def visible_menus_for_user(user):
     items = [
         menu.to_dict()
         for menu in menus
-        if has_role(user, menu.min_role) and menu.user_type in {user.user_type, "all"}
+        if menu_is_available(user, menu)
     ]
 
     groups = OrderedDict()

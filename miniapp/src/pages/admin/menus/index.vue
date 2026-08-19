@@ -91,6 +91,7 @@ import { reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { createMenu, disableMenu, enableMenu, listMenus, updateMenu } from '../../../api/adminMenus'
 import { requireLogin } from '../../../api/auth'
+import { invalidateMenuCache } from '../../../api/menu'
 import { enabledLabel, messageLabel, option, roleLabel, userTypeLabel } from '../../../utils/labels'
 
 const emptyForm = {
@@ -184,6 +185,7 @@ function saveMenu() {
   const action = formMode.value === 'edit' ? updateMenu(form.id, payload) : createMenu(payload)
   action
     .then(() => {
+      invalidateMenuCache()
       toast('保存成功')
       closeForm()
       loadMenus()
@@ -198,6 +200,7 @@ function toggleEnabled(item) {
   const action = item.enabled ? disableMenu(item.id) : enableMenu(item.id)
   action
     .then(() => {
+      invalidateMenuCache()
       toast(item.enabled ? '已禁用' : '已启用')
       loadMenus()
     })

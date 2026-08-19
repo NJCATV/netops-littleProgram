@@ -18,6 +18,10 @@
 | Radius 管理系统 | `/pages/netops/radius/index` | 按 GDF/GDC 账号或终端 MAC 汇总认证、流量、会话、问题诊断和 ONU 一致性核验 |
 | AIOps 运维看板 / 运维中心 | `/pages/netops/aiops/index` | 最新 AI 研判、必须处理/关注/恢复/降噪分类、证据、处置建议和历史报告 |
 | AI 问答 | `/pages/netops/ai-assistant/index` | 故障知识、值班经验和 AIOps 数据问答，支持历史会话 |
+| AIOps 知识库 | `/pages/netops/aiops-knowledge/index` | 分类检索正式报告、值班经验、运维文档和故障主题，支持移动详情 |
+| AIOps 系统管理 | `/pages/netops/aiops-admin/index` | 模型/供应商、分析任务、运行设置和操作日志移动概览，支持立即触发任务 |
+| 系统审计与使用分析 | `/pages/netops/system-audit/index` | 行为指标、使用趋势、模块分布和分页审计明细 |
+| 基础设施监控 | `/pages/netops/infrastructure/index` | 节点资源、核心服务、组件健康状态与服务日志 |
 | BOSS 用户管理 | `/pages/netops/boss-users/index` | 用户资料搜索、跳转 ONU、管理员 Excel 增量导入 |
 | 设备组织 / 权限映射 / 系统配置 | `/pages/netops/admin/index` | 区域机房树、组织区域映射、ONU/OLT 告警阈值 |
 | 用户 / 用户组织 / 菜单权限 | 现有 `/pages/admin/*` | 继续复用小程序已有用户、组织和功能管理页面 |
@@ -36,9 +40,9 @@
 ## 移动端范围取舍
 
 - 接入 Radius 一键诊断，不迁移认证明细大表、完整风险报表、Accounting 全量报表和 CSV 导出；这些能力继续保留在 Web。
-- 接入 AIOps 最新研判、历史报告、证据和建议查看，不在手机端提供模型、规则、任务、审计等系统配置。
-- 接入 AI 运维问答和个人历史会话，不在手机端提供知识库管理。
-- 基础设施拓扑、系统审计、批量管理等低频且信息密集的页面继续使用 Web。
+- 接入 AIOps 最新研判、历史报告、证据和建议查看；手机端提供模型、任务、运行设置和日志概览，复杂模型编辑与批量配置仍保留在 Web。
+- 接入 AI 运维问答、个人历史会话和知识库分类检索；批量知识导入仍保留在 Web。
+- 基础设施监控和系统审计提供移动卡片与分页明细；复杂拓扑编辑和批量管理继续使用 Web。
 
 ## 移动端设计约束
 

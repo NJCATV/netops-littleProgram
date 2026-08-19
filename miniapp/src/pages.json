@@ -160,6 +160,31 @@
       }
     },
     {
+      "path": "pages/netops/aiops-knowledge/index",
+      "style": {
+        "navigationBarTitleText": "AIOps 知识库"
+      }
+    },
+    {
+      "path": "pages/netops/aiops-admin/index",
+      "style": {
+        "navigationBarTitleText": "AIOps 系统管理"
+      }
+    },
+    {
+      "path": "pages/netops/system-audit/index",
+      "style": {
+        "navigationBarTitleText": "系统审计"
+      }
+    },
+    {
+      "path": "pages/netops/infrastructure/index",
+      "style": {
+        "navigationBarTitleText": "基础设施监控",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
       "path": "pages/netops/boss-users/index",
       "style": {
         "navigationBarTitleText": "BOSS 用户"
@@ -187,6 +212,10 @@
       {
         "pagePath": "pages/workbench/index",
         "text": "菜单"
+      },
+      {
+        "pagePath": "pages/netops/ai-assistant/index",
+        "text": "一键 AI"
       },
       {
         "pagePath": "pages/my/index",

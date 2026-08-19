@@ -83,3 +83,7 @@ export const updateOrganizationMapping = (id, data) => send(`/organization-mappi
 export const getNetopsSettings = () => get('/settings')
 export const saveOnuQualityRule = (data) => send('/settings/quality/onu-rx-rule', 'POST', data)
 export const saveOltPerformanceRule = (data) => send('/settings/performance/olt-rule', 'POST', data)
+
+export const getSystemAudit = (params) => get('/system/audit', params)
+export const getInfrastructureOverview = (refresh = false) => get('/infrastructure/overview', refresh ? { refresh: 1 } : {})
+export const getInfrastructureLogs = (params) => get('/infrastructure/logs', params)

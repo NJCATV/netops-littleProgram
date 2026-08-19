@@ -52,16 +52,20 @@ export function resolveAssetUrl(url) {
   if (!value) {
     return ''
   }
-  if (/^https?:\/\//i.test(value)) {
-    return value
-  }
-
   const baseUrl = getBaseUrl().replace(/\/+$/, '')
   const originMatch = baseUrl.match(/^(https?:\/\/[^/]+)/i)
   const origin = originMatch ? originMatch[1] : ''
-  const path = value.startsWith('/') ? value : `/${value}`
+  const absoluteMatch = value.match(/^https?:\/\/[^/]+(\/[^?#]*)/i)
+  if (/^https?:\/\//i.test(value) && !absoluteMatch) return value
+  let path = absoluteMatch ? absoluteMatch[1] : value
+  path = path.startsWith('/') ? path : `/${path}`
 
   // 兼容历史记录中的 /api/files、/api/netops2026/files 和当前 /files 三种格式。
+  const avatarMatch = path.match(/^\/(?:api\/(?:netops2026\/)?)*files\/avatars\/(.+)$/i)
+  if (avatarMatch) {
+    return `${baseUrl}/files/avatars/${avatarMatch[1]}`
+  }
+  if (absoluteMatch) return value
   if (/^\/api\//i.test(path) && origin) {
     return `${origin}${path}`
   }

@@ -1,7 +1,6 @@
 import io
 import tempfile
 import unittest
-from pathlib import Path
 
 from PIL import Image
 
@@ -81,9 +80,8 @@ class AvatarUploadTest(unittest.TestCase):
         response = self.upload(image_file())
         self.assertEqual(response.status_code, 200)
         avatar_url = response.get_json()["data"]["user"]["avatar_url"]
-        self.assertTrue(avatar_url.startswith("/files/avatars/"))
-        filename = Path(avatar_url).name
-        asset = self.client.get(f"/api/netops2026/files/avatars/{filename}")
+        self.assertTrue(avatar_url.startswith("/api/netops2026/files/avatars/"))
+        asset = self.client.get(avatar_url)
         self.assertEqual(asset.status_code, 200)
         self.assertEqual(asset.mimetype, "image/jpeg")
         with Image.open(io.BytesIO(asset.data)) as saved:

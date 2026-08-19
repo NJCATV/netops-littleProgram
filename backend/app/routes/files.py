@@ -55,7 +55,10 @@ def upload_avatar_response():
     avatar_path.write_bytes(raw)
 
     old_avatar_url = g.current_user.avatar_url
-    g.current_user.avatar_url = f"/files/avatars/{filename}"
+    # Persist the mobile namespace explicitly. A bare /files path depends on
+    # whichever reverse-proxy location happens to receive it and can be routed
+    # to the legacy service in production.
+    g.current_user.avatar_url = f"/api/netops2026/files/avatars/{filename}"
     add_operation_log(
         request,
         g.current_user,

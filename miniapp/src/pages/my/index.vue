@@ -1,12 +1,14 @@
 <template>
   <view class="page my-page">
-    <view class="profile-head" @tap="chooseAvatar">
-      <image v-if="avatarSrc" class="avatar avatar-image" :src="avatarSrc" mode="aspectFill" @error="onAvatarError" />
-      <view v-else class="avatar">{{ initial }}</view>
+    <view class="profile-head">
+      <button class="avatar-picker" open-type="chooseAvatar" hover-class="avatar-picker-pressed" @chooseavatar="onChooseAvatar">
+        <image v-if="avatarSrc" class="avatar avatar-image" :src="avatarSrc" mode="aspectFill" @error="onAvatarError" />
+        <view v-else class="avatar">{{ initial }}</view>
+      </button>
       <view class="profile-main">
         <view class="name">{{ user.real_name || '智维用户' }}</view>
         <view class="meta">{{ user.org_name || '未分配组织' }}｜{{ roleLabel(user.role_code) }}</view>
-        <view class="avatar-tip">点击选择照片并裁切 · 上传不超过 2MB</view>
+        <view class="avatar-tip">点击头像选择并裁切 · 上传不超过 2MB</view>
       </view>
     </view>
 
@@ -42,10 +44,10 @@
         <text>修改密码</text>
         <text class="chevron">›</text>
       </view>
-      <view class="action-row" @tap="chooseAvatar">
+      <button class="action-row avatar-action" open-type="chooseAvatar" hover-class="action-row-pressed" @chooseavatar="onChooseAvatar">
         <text>更换头像</text>
         <text class="chevron">›</text>
-      </view>
+      </button>
       <view class="action-row" @tap="goBindOss">
         <text>OSS 账号确认或更新</text>
         <text class="chevron">›</text>
@@ -68,8 +70,10 @@ import { syncCustomTabBar } from '../../utils/tab-bar'
 const user = ref(getStoredUser())
 const avatarLoadFailed = ref(false)
 const avatarVersion = ref(Date.now())
+const localAvatarSrc = ref('')
 const initial = computed(() => (user.value.real_name || '用').slice(0, 1))
 const avatarSrc = computed(() => {
+  if (localAvatarSrc.value) return localAvatarSrc.value
   if (avatarLoadFailed.value) return ''
   const url = resolveAssetUrl(user.value.avatar_url)
   if (!url) return ''
@@ -103,64 +107,34 @@ function goBindOss() {
   uni.navigateTo({ url: '/pages/auth/bind-oss/index' })
 }
 
-function chooseAvatar() {
-  uni.chooseMedia({
-    count: 1,
-    mediaType: ['image'],
-    sourceType: ['album', 'camera'],
-    async success(result) {
-      const selectedFile = result.tempFiles && result.tempFiles[0]
-      const filePath = selectedFile?.tempFilePath || selectedFile?.path
-      if (!filePath) {
-        return
-      }
-      uni.showLoading({ title: '准备裁切' })
-      let uploadPath = ''
-      try {
-        const croppedPath = await cropAvatar(filePath)
-        uploadPath = await compressAvatar(croppedPath)
-        await validateAvatar(uploadPath)
-      } catch (error) {
-        uni.hideLoading()
-        if (!error.cancelled) uni.showToast({ title: error.message, icon: 'none' })
-        return
-      }
-      uni.hideLoading()
-      uni.showLoading({ title: '上传中' })
-      uploadAvatar(uploadPath)
-        .then((data) => {
-          user.value = data.user || getStoredUser()
-          avatarLoadFailed.value = false
-          avatarVersion.value = Date.now()
-          uni.hideLoading()
-          uni.showToast({ title: '头像已更新', icon: 'success' })
-        })
-        .catch((error) => {
-          uni.hideLoading()
-          uni.showToast({ title: messageLabel(error.message), icon: 'none' })
-        })
-    }
-  })
-}
+async function onChooseAvatar(event) {
+  const filePath = event?.detail?.avatarUrl
+  if (!filePath) return
 
-function cropAvatar(filePath) {
-  return new Promise((resolve, reject) => {
-    // #ifdef MP-WEIXIN
-    if (typeof wx !== 'undefined' && typeof wx.cropImage === 'function') {
-      wx.cropImage({
-        src: filePath,
-        cropScale: '1:1',
-        success: (result) => resolve(result.tempFilePath),
-        fail: (error) => {
-          const cancelled = /cancel/i.test(error.errMsg || '')
-          reject(Object.assign(new Error(cancelled ? '已取消裁切' : '头像裁切失败，请重试'), { cancelled }))
-        }
-      })
-      return
-    }
-    // #endif
-    reject(new Error('当前微信版本不支持头像裁切，请升级微信后重试'))
-  })
+  localAvatarSrc.value = filePath
+  uni.showLoading({ title: '处理头像' })
+  let uploaded = false
+  try {
+    const uploadPath = await compressAvatar(filePath)
+    await validateAvatar(uploadPath)
+    uni.showLoading({ title: '上传中' })
+    const data = await uploadAvatar(uploadPath)
+    uploaded = true
+    user.value = data.user || getStoredUser()
+    avatarLoadFailed.value = false
+    avatarVersion.value = Date.now()
+    const remoteUrl = versionedAvatarUrl(user.value.avatar_url)
+    await getImageMeta(remoteUrl)
+    localAvatarSrc.value = ''
+    uni.hideLoading()
+    uni.showToast({ title: '头像已更新', icon: 'success' })
+  } catch (error) {
+    uni.hideLoading()
+    if (!uploaded) localAvatarSrc.value = ''
+    const fallback = uploaded ? '头像已上传，但服务器图片无法读取，请联系管理员' : '头像上传失败，请重试'
+    const title = uploaded ? fallback : messageLabel(error.message || fallback)
+    uni.showToast({ title, icon: 'none', duration: 3000 })
+  }
 }
 
 function compressAvatar(filePath) {
@@ -195,6 +169,12 @@ function getImageMeta(filePath) {
 
 function getFileSize(filePath) {
   return new Promise((resolve, reject) => uni.getFileInfo({ filePath, success: (result) => resolve(result.size), fail: () => reject(new Error('无法读取图片大小，请重新选择')) }))
+}
+
+function versionedAvatarUrl(url) {
+  const resolved = resolveAssetUrl(url)
+  if (!resolved) return ''
+  return `${resolved}${resolved.includes('?') ? '&' : '?'}v=${avatarVersion.value}`
 }
 
 function onAvatarError() {
@@ -247,6 +227,25 @@ function onLogout() {
   font-weight: 700;
 }
 
+.avatar-picker {
+  flex: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  line-height: 1;
+}
+
+.avatar-picker::after,
+.avatar-action::after {
+  border: 0;
+}
+
+.avatar-picker-pressed {
+  opacity: 0.8;
+}
+
 .avatar-image {
   display: block;
 }
@@ -291,6 +290,19 @@ function onLogout() {
   border-bottom: 1rpx solid #edf1f5;
   color: #2b3642;
   font-size: 26rpx;
+}
+
+.avatar-action {
+  width: 100%;
+  margin: 0;
+  border-radius: 0;
+  background: transparent;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.action-row-pressed {
+  background: #f5f8fb;
 }
 
 .info-row:last-child,

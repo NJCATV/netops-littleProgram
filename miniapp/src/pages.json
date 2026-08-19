@@ -116,22 +116,9 @@
       }
     },
     {
-      "path": "pages/work-orders/index",
+      "path": "pages/work-orders/coming-soon",
       "style": {
-        "navigationBarTitleText": "智能装维",
-        "enablePullDownRefresh": true
-      }
-    },
-    {
-      "path": "pages/work-orders/detail",
-      "style": {
-        "navigationBarTitleText": "工单详情"
-      }
-    },
-    {
-      "path": "pages/work-orders/installation",
-      "style": {
-        "navigationBarTitleText": "现场智能检测"
+        "navigationBarTitleText": "智能装维"
       }
     },
     {

@@ -42,13 +42,13 @@ const routeMap = {
   '/collector': '/pages/netops/collector/index', '/devices': '/pages/netops/devices/index', '/probe': '/pages/netops/devices/index', '/hfc': '/pages/netops/hfc/index', '/cm-search': '/pages/netops/hfc/index', '/cmts-devices': '/pages/netops/hfc/index',
   '/radius': '/pages/netops/radius/index', '/radius/search': '/pages/netops/radius/index', '/aiops': '/pages/netops/aiops/index', '/aiops/board': '/pages/netops/aiops/index', '/aiops/knowledge': '/pages/netops/aiops-knowledge/index', '/aiops/admin': '/pages/netops/aiops-admin/index',
   '/ai-assistant': '/pages/netops/ai-assistant/index', '/boss-users': '/pages/netops/boss-users/index', '/settings': '/pages/netops/admin/index', '/device-orgs': '/pages/netops/admin/index', '/permissions': '/pages/admin/menus/index', '/users': '/pages/admin/users/index', '/user-orgs': '/pages/admin/orgs/index',
-  '/system-audit': '/pages/netops/system-audit/index', '/infrastructure': '/pages/netops/infrastructure/index', '/work-orders': '/pages/work-orders/index'
+  '/system-audit': '/pages/netops/system-audit/index', '/infrastructure': '/pages/netops/infrastructure/index', '/work-orders': '/pages/work-orders/coming-soon'
 }
 const keyMap = {
   'netops.dashboard': '/pages/netops/dashboard/index', 'netops.onu': '/pages/netops/onu/index', 'netops.onu_search': '/pages/netops/onu/index', 'netops.quality': '/pages/netops/quality/index', 'netops.performance': '/pages/netops/performance/index', 'netops.collector': '/pages/netops/collector/index',
   'netops.devices': '/pages/netops/devices/index', 'netops.hfc': '/pages/netops/hfc/index', 'netops.cmts_devices': '/pages/netops/hfc/index', 'netops.radius': '/pages/netops/radius/index', 'netops.aiops': '/pages/netops/aiops/index', 'netops.aiops_knowledge': '/pages/netops/aiops-knowledge/index',
   'netops.aiops_admin': '/pages/netops/aiops-admin/index', 'netops.system_audit': '/pages/netops/system-audit/index', 'netops.infrastructure': '/pages/netops/infrastructure/index', 'netops.ai_assistant': '/pages/netops/ai-assistant/index',
-  'netops.boss-users': '/pages/netops/boss-users/index', 'netops.boss_users': '/pages/netops/boss-users/index', 'netops.admin': '/pages/netops/admin/index', 'netops.work_orders': '/pages/work-orders/index'
+  'netops.boss-users': '/pages/netops/boss-users/index', 'netops.boss_users': '/pages/netops/boss-users/index', 'netops.admin': '/pages/netops/admin/index', 'netops.work_orders': '/pages/work-orders/coming-soon'
 }
 const nameMap = {
   '统一驾驶舱': '/pages/netops/dashboard/index', '网络总览': '/pages/netops/dashboard/index', '单台ONU查询': '/pages/netops/onu/index', 'ONU查询': '/pages/netops/onu/index', 'ONU质差管理': '/pages/netops/quality/index', 'OLT性能看板': '/pages/netops/performance/index',
@@ -60,12 +60,12 @@ const nameMap = {
 const routeIcon = {
   '/pages/netops/dashboard/index': 'dashboard', '/pages/netops/onu/index': 'onu', '/pages/netops/quality/index': 'quality', '/pages/netops/performance/index': 'performance', '/pages/netops/collector/index': 'collector', '/pages/netops/devices/index': 'devices', '/pages/netops/hfc/index': 'hfc', '/pages/netops/radius/index': 'radius',
   '/pages/netops/aiops/index': 'aiops', '/pages/netops/aiops-knowledge/index': 'knowledge', '/pages/netops/aiops-admin/index': 'aiadmin', '/pages/netops/system-audit/index': 'audit', '/pages/netops/infrastructure/index': 'infrastructure', '/pages/netops/ai-assistant/index': 'assistant',
-  '/pages/netops/boss-users/index': 'boss', '/pages/netops/admin/index': 'admin', '/pages/work-orders/index': 'workorder'
+  '/pages/netops/boss-users/index': 'boss', '/pages/netops/admin/index': 'admin', '/pages/work-orders/coming-soon': 'workorder'
 }
 const queryOrder = ['/pages/netops/onu/index', '/pages/netops/hfc/index', '/pages/netops/radius/index']
 const monitorOrder = ['/pages/netops/dashboard/index', '/pages/netops/aiops/index', '/pages/netops/quality/index', '/pages/netops/performance/index', '/pages/netops/collector/index']
 const netSystemOrder = ['/pages/netops/devices/index', '/pages/netops/boss-users/index', '/pages/netops/admin/index', '/pages/netops/aiops-admin/index', '/pages/netops/system-audit/index', '/pages/netops/infrastructure/index', '/pages/netops/aiops-knowledge/index']
-const workOrderPath = '/pages/work-orders/index'
+const workOrderPath = '/pages/work-orders/coming-soon'
 const fieldKeys = new Set(['watermark.camera', 'ip.calculator', 'duty.view', 'server.manage', 'data.query'])
 const platformKeys = new Set(['user.manage', 'org.manage', 'menu.manage', 'log.view', 'system.setting'])
 const nameOverrides = {

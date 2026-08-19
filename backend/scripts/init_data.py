@@ -13,7 +13,7 @@ from app.models import AppMenu, OrgUnit  # noqa: E402
 DEFAULT_ORGS = {"南京": {"level": 1, "children": {}}}
 
 DEFAULT_MENUS = [
-    ("netops.work_orders", "智能装维", "work-order", "/pages/work-orders/index", "施工服务", "normal_user", 10),
+    ("netops.work_orders", "智能装维", "work-order", "/pages/work-orders/coming-soon", "施工服务", "normal_user", 10),
     ("netops.onu", "FTTH查询", "onu", "/pages/netops/onu/index", "业务查询", "normal_user", 10),
     ("netops.hfc", "CM / CMTS查询", "hfc", "/pages/netops/hfc/index", "业务查询", "normal_user", 20),
     ("netops.radius", "Radius查询", "radius", "/pages/netops/radius/index", "业务查询", "normal_user", 30),

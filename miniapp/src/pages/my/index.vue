@@ -180,7 +180,6 @@ function versionedAvatarUrl(url) {
 function onAvatarError() {
   if (avatarLoadFailed.value) return
   avatarLoadFailed.value = true
-  uni.showToast({ title: '头像加载失败，请重新上传', icon: 'none' })
 }
 
 function onLogout() {

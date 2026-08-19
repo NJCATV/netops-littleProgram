@@ -131,7 +131,13 @@ function organizeGroups(items) {
 function go(item) {
   const path = pathFor(item); if (!path) { uni.showToast({ title: '功能开发中，敬请期待', icon: 'none' }); return }
   if (path === '/pages/workbench/index' || path === '/pages/my/index' || path === '/pages/netops/ai-assistant/index') { uni.switchTab({ url: path }); return }
-  uni.navigateTo({ url: path, fail: () => uni.showToast({ title: '入口不可用，请联系管理员', icon: 'none' }) })
+  uni.navigateTo({
+    url: path,
+    fail: () => uni.showToast({
+      title: item.menu_key === 'netops.work_orders' ? '功能正在完善中，敬请期待' : '入口不可用，请联系管理员',
+      icon: 'none'
+    })
+  })
 }
 </script>
 

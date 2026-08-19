@@ -29,6 +29,7 @@
 ### Verification
 
 - 后端 19 项测试、Python 编译、空库/存量库迁移及 uni-app 微信小程序生产构建均通过。
+- JSCN-233 已部署提交 `eee0d35` 的后端变更，生产迁移为 `d8e9f0a1b2c3`；菜单权限、智能装维占位路径、头像 JPEG 规范化及服务健康检查通过。
 
 ## 2026-08-12 - Smart Installation Platform Fusion Correction
 

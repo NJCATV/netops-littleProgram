@@ -48,13 +48,24 @@ export function getStoredUser() {
 }
 
 export function resolveAssetUrl(url) {
-  if (!url) {
+  const value = String(url || '').trim()
+  if (!value) {
     return ''
   }
-  if (/^https?:\/\//i.test(url)) {
-    return url
+  if (/^https?:\/\//i.test(value)) {
+    return value
   }
-  return `${getBaseUrl()}${url.startsWith('/') ? url : `/${url}`}`
+
+  const baseUrl = getBaseUrl().replace(/\/+$/, '')
+  const originMatch = baseUrl.match(/^(https?:\/\/[^/]+)/i)
+  const origin = originMatch ? originMatch[1] : ''
+  const path = value.startsWith('/') ? value : `/${value}`
+
+  // 兼容历史记录中的 /api/files、/api/netops2026/files 和当前 /files 三种格式。
+  if (/^\/api\//i.test(path) && origin) {
+    return `${origin}${path}`
+  }
+  return `${baseUrl}${path}`
 }
 
 export function hasToken() {

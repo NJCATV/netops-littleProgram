@@ -1,12 +1,12 @@
 <template>
   <view class="page my-page">
     <view class="profile-head" @tap="chooseAvatar">
-      <image v-if="avatarSrc" class="avatar avatar-image" :src="avatarSrc" mode="aspectFill" />
+      <image v-if="avatarSrc" class="avatar avatar-image" :src="avatarSrc" mode="aspectFill" @error="avatarLoadFailed = true" />
       <view v-else class="avatar">{{ initial }}</view>
       <view class="profile-main">
         <view class="name">{{ user.real_name || '智维用户' }}</view>
         <view class="meta">{{ user.org_name || '未分配组织' }}｜{{ roleLabel(user.role_code) }}</view>
-        <view class="avatar-tip">点击头像区域更换头像</view>
+        <view class="avatar-tip">点击更换 · 128～4096 像素 · 不超过 2MB</view>
       </view>
     </view>
 
@@ -63,12 +63,21 @@ import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getStoredUser, logout, requireLogin, resolveAssetUrl, uploadAvatar } from '../../api/auth'
 import { messageLabel, ossStatusLabel, roleLabel, statusLabel, userTypeLabel } from '../../utils/labels'
+import { syncCustomTabBar } from '../../utils/tab-bar'
 
 const user = ref(getStoredUser())
+const avatarLoadFailed = ref(false)
 const initial = computed(() => (user.value.real_name || '用').slice(0, 1))
-const avatarSrc = computed(() => resolveAssetUrl(user.value.avatar_url))
+const avatarSrc = computed(() => avatarLoadFailed.value ? '' : resolveAssetUrl(user.value.avatar_url))
+
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024
+const AVATAR_MIN_DIMENSION = 128
+const AVATAR_MAX_DIMENSION = 4096
+const AVATAR_TYPES = new Set(['jpg', 'jpeg', 'png', 'webp'])
 
 onShow(() => {
+  syncCustomTabBar(2)
+  avatarLoadFailed.value = false
   requireLogin()
     .then((data) => {
       user.value = data.user || getStoredUser()
@@ -93,15 +102,23 @@ function chooseAvatar() {
     count: 1,
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
-    success(result) {
+    async success(result) {
       const filePath = result.tempFilePaths && result.tempFilePaths[0]
       if (!filePath) {
+        return
+      }
+      const selectedFile = result.tempFiles && result.tempFiles[0]
+      try {
+        await validateAvatar(filePath, selectedFile?.size)
+      } catch (error) {
+        uni.showToast({ title: error.message, icon: 'none' })
         return
       }
       uni.showLoading({ title: '上传中' })
       uploadAvatar(filePath)
         .then((data) => {
           user.value = data.user || getStoredUser()
+          avatarLoadFailed.value = false
           uni.hideLoading()
           uni.showToast({ title: '头像已更新', icon: 'success' })
         })
@@ -110,6 +127,38 @@ function chooseAvatar() {
           uni.showToast({ title: messageLabel(error.message), icon: 'none' })
         })
     }
+  })
+}
+
+function validateAvatar(filePath, selectedSize) {
+  if (Number(selectedSize) > AVATAR_MAX_BYTES) {
+    return Promise.reject(new Error('头像不能超过 2MB'))
+  }
+  return new Promise((resolve, reject) => {
+    uni.getImageInfo({
+      src: filePath,
+      success(info) {
+        const width = Number(info.width || 0)
+        const height = Number(info.height || 0)
+        const type = String(info.type || '').toLowerCase()
+        if (type && !AVATAR_TYPES.has(type)) {
+          reject(new Error('仅支持 JPG、PNG 或 WebP'))
+          return
+        }
+        if (width < AVATAR_MIN_DIMENSION || height < AVATAR_MIN_DIMENSION) {
+          reject(new Error('头像宽高不能小于 128 像素'))
+          return
+        }
+        if (width > AVATAR_MAX_DIMENSION || height > AVATAR_MAX_DIMENSION) {
+          reject(new Error('头像宽高不能超过 4096 像素'))
+          return
+        }
+        resolve()
+      },
+      fail() {
+        reject(new Error('无法读取图片，请重新选择'))
+      }
+    })
   })
 }
 
@@ -138,6 +187,10 @@ function onLogout() {
   border-radius: 8rpx;
   background: #2f3b4a;
   color: #ffffff;
+}
+
+.my-page {
+  padding-bottom: 150rpx;
 }
 
 .avatar {

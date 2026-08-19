@@ -72,6 +72,8 @@ const MESSAGE_LABELS = {
   'avatar file is required': '请选择头像图片',
   'avatar file is too large': '头像图片不能超过 2MB',
   'avatar file type is invalid': '头像仅支持 JPG、PNG 或 WebP',
+  'avatar dimensions are too small': '头像宽高不能小于 128 像素',
+  'avatar dimensions are too large': '头像宽高不能超过 4096 像素',
   'cannot disable the last super_admin': '不能禁用最后一个超级管理员',
   'real_name is required': '请填写姓名',
   'mobile is invalid': '手机号格式不正确',

@@ -1,7 +1,9 @@
 import uuid
+from io import BytesIO
 from pathlib import Path
 
 from flask import Blueprint, current_app, g, request, send_from_directory
+from PIL import Image, UnidentifiedImageError
 
 from app.extensions import db
 from app.services.log_service import add_operation_log
@@ -11,19 +13,9 @@ from app.utils.responses import BAD_REQUEST, fail, success
 
 files_bp = Blueprint("files", __name__, url_prefix="/api/files")
 
-ALLOWED_AVATAR_EXTENSIONS = {
-    "jpg": "jpg",
-    "jpeg": "jpg",
-    "png": "png",
-    "webp": "webp",
-}
-
-MIME_EXTENSION_MAP = {
-    "image/jpeg": "jpg",
-    "image/jpg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp",
-}
+AVATAR_FORMAT_EXTENSIONS = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}
+AVATAR_MIN_DIMENSION = 128
+AVATAR_MAX_DIMENSION = 4096
 
 
 @files_bp.post("/avatar")
@@ -42,9 +34,14 @@ def upload_avatar_response():
     if len(raw) > max_bytes:
         return fail(BAD_REQUEST, "avatar file is too large")
 
-    extension = avatar_extension(file.filename, file.mimetype)
-    if extension is None:
+    image_meta = inspect_avatar(raw)
+    if image_meta is None:
         return fail(BAD_REQUEST, "avatar file type is invalid")
+    extension, width, height = image_meta
+    if width < AVATAR_MIN_DIMENSION or height < AVATAR_MIN_DIMENSION:
+        return fail(BAD_REQUEST, "avatar dimensions are too small")
+    if width > AVATAR_MAX_DIMENSION or height > AVATAR_MAX_DIMENSION:
+        return fail(BAD_REQUEST, "avatar dimensions are too large")
 
     avatar_dir = Path(current_app.config["UPLOAD_DIR"]) / "avatars"
     avatar_dir.mkdir(parents=True, exist_ok=True)
@@ -79,15 +76,21 @@ def avatar_file_response(filename):
     return send_from_directory(avatar_dir, filename)
 
 
-def avatar_extension(filename, mimetype):
-    suffix = Path(filename).suffix.lower().lstrip(".")
-    if suffix in ALLOWED_AVATAR_EXTENSIONS:
-        return ALLOWED_AVATAR_EXTENSIONS[suffix]
-    return MIME_EXTENSION_MAP.get((mimetype or "").lower())
+def inspect_avatar(raw):
+    try:
+        with Image.open(BytesIO(raw)) as image:
+            extension = AVATAR_FORMAT_EXTENSIONS.get((image.format or "").upper())
+            width, height = image.size
+            if extension is None:
+                return None
+            image.verify()
+    except (UnidentifiedImageError, Image.DecompressionBombError, OSError, OverflowError, SyntaxError, ValueError):
+        return None
+    return extension, int(width), int(height)
 
 
 def remove_old_avatar(avatar_url):
-    if not avatar_url or not avatar_url.startswith("/files/avatars/"):
+    if not avatar_url or "/files/avatars/" not in avatar_url:
         return
     filename = avatar_url.rsplit("/", 1)[-1]
     if not filename:
